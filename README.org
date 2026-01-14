@@ -11,13 +11,15 @@ It's just a simple project including the script to build a /K3s/ cluster with
 ** Server
 #+begin_html
 <img src="images/PLATFORM.svg" width="400">
-#+begin_html
-
-[[file:images/PLATFORM.svg]]
+#+end_html
 ** Software
-[[file:images/AUTOMATION.svg]]
+#+begin_html
+<img src="images/AUTOMATION.svg" width="400">
+#+end_html
 ** Communication
-[[file:images/ISTIO.svg]]
+#+begin_html
+<img src="images/ISTIO.svg" width="400"> 
+#+end_html
 
 * Wasm
 We'll try to manage communication and encryption through addon.
