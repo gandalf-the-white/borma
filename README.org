@@ -20,6 +20,9 @@ It's just a simple project including the script to build a /K3s/ cluster with
 #+begin_html
 <img src="images/ISTIO.svg" width="400"> 
 #+end_html
-
+** Test
+#+begin_src html
+<img src="images/ISTIO.svg" width="400">
+#+end_src
 * Wasm
 We'll try to manage communication and encryption through addon.
