@@ -1,6 +1,6 @@
 variable "userctn" { default = "spike" }
-variable "publkeyctn" { default = "~/.ssh/id_ed25519_proxmox.pub" }
-variable "privkeyctn" { default = "~/.ssh/id_ed25519_proxmox" }
+variable "publkeyctn" {}
+variable "privkeyctn" {}
 variable "token" {}
 variable "token_id" {}
 variable "fqdn_pmox" {}
