@@ -9,13 +9,13 @@ It's just a simple project including the script to build a /K3s/ cluster with
 
 * Platform
 ** Server
-#+attr_html: :width 450px
+#+attr_html: :width 250px
 [[file:images/PLATFORM.svg]]
 ** Software
-#+attr_html: :width 450px
+#+attr_html: :width 250px
 [[file:images/AUTOMATION.svg]]
 ** Communication
-#+attr_html: :width 450px
+#+attr_html: :width 250px
 [[file:images/ISTIO.svg]]
 
 * Wasm
