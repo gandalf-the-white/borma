@@ -6,9 +6,7 @@ variable "token_id" {}
 variable "fqdn_pmox" {}
 variable "bridge" { default = "vmbr3" }
 
-# variable "proxy" { default = "http://proxy.rd.francetelecom.fr:8080" }
 variable "proxy" { default = "" }
-# variable "nameserver" { default = "10.192.65.254" }
 variable "nameserver" { default = "192.168.68.1" }
 
 variable "cloudinit" { default = "local" }
