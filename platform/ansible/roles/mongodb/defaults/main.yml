@@ -1,0 +1,5 @@
+---
+# defaults file for roles/mongodb
+packages:
+  - curl
+  - gnupg

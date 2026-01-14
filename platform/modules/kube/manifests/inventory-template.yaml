@@ -1,0 +1,33 @@
+all:
+  children:
+    main_cluster:
+      children:
+        bootstrap:
+          hosts:
+%{ for master in masters ~}
+%{ if substr(master.default_ipv4_address,-3,-1) == "101" ~}
+            ${master.name}:
+              ansible_host: ${master.default_ipv4_address}
+              ansible_hostname: ${master.name}
+%{ endif ~}
+%{ endfor ~}
+        master_nodes:
+          hosts:
+%{ for master in masters ~}
+%{ if substr(master.default_ipv4_address,-3,-1) != "101" ~}
+            ${master.name}:
+              ansible_host: ${master.default_ipv4_address}
+              ansible_hostname: ${master.name}
+%{ endif ~}
+%{ endfor ~}
+        worker_nodes:
+          hosts:
+%{ for worker in workers ~}
+            ${worker.name}:
+              ansible_host: ${worker.default_ipv4_address}
+              ansible_hostname: ${worker.name}
+%{ endfor ~}
+  vars:
+    ansible_user: ${userctn}
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_private_key_file: ${privkeyctn}

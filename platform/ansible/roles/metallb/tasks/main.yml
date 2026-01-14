@@ -1,0 +1,53 @@
+---
+# tasks file for roles/metallb
+- name: Add stable istio chart repo
+  kubernetes.core.helm_repository:
+    name: metallb
+    repo_url: "https://metallb.github.io/metallb"
+
+- name: Install metallb
+  kubernetes.core.helm:
+    name: metallb-system
+    chart_ref: metallb/metallb
+    release_namespace: metallb-system
+    create_namespace: true
+
+- name: Wait until install done
+  kubernetes.core.k8s_info:
+    kind: Pod
+    label_selectors:
+      - app.kubernetes.io/name=metallb
+    wait: true
+    namespace: metallb-system
+    wait_sleep: 5
+    wait_timeout: 150
+
+- name: Apply the configuration
+  kubernetes.core.k8s:
+    namespace: metallb-ingress
+    state: present
+    definition:
+      apiVersion: metallb.io/v1beta1
+      kind: IPAddressPool
+      metadata:
+        name: default
+        namespace: metallb-system
+      spec:
+        addresses:
+          - "{{ prefix }}.229/32"
+          - "{{ prefix }}.230/32"
+          - "{{ prefix }}.231/32"
+
+- name: Apply the advertisement
+  kubernetes.core.k8s:
+    namespace: metallb-ingress
+    state: present
+    definition:
+      apiVersion: metallb.io/v1beta1
+      kind: L2Advertisement
+      metadata:
+        name: l2advertisement1
+        namespace: metallb-system
+      spec:
+        ipAddressPools:
+          - default

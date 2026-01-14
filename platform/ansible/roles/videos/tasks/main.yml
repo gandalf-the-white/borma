@@ -1,0 +1,95 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for roles/videos
+- name: Install nginx
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+- name: Ensure HLS root directory exists
+  file:
+    path: "{{ hls_root }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy HLS video files
+  copy:
+    src: files/
+    dest: "{{ hls_root }}/"
+    mode: "0644"
+
+- name: Configure Nginx for HLS
+  copy:
+    dest: /etc/nginx/sites-available/hls
+    content: |
+      server {
+          listen 80;
+          server_name _;
+          root /var/www/;
+
+          location /hls/ {
+              types {
+                  application/vnd.apple.mpegurl m3u8;
+                  video/mp2t ts;
+              }
+
+              add_header Access-Control-Allow-Origin *;
+              add_header Access-Control-Allow-Methods 'GET, OPTIONS';
+              add_header Access-Control-Allow-Headers 'Range';
+              add_header Cache-Control no-cache;
+
+              expires 1h;
+          }
+
+          error_page 404 /404.html;
+      }
+
+- name: Enable HLS site
+  file:
+    src: /etc/nginx/sites-available/hls
+    dest: /etc/nginx/sites-enabled/hls
+    state: link
+    force: yes
+
+- name: Remove default site if exists
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Reload Nginx
+  service:
+    name: nginx
+    state: reloaded
+
+- name: Download films
+  get_url:
+    url: http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov
+    dest: /var/www/hls/tears_of_steel_1080p.mov
+
+- name: Download films
+  get_url:
+    url: http://ftp.halifax.rwth-aachen.de/blender/demo/movies/Cycles_Demoreel_2015.mov
+    dest: /var/www/hls/Cycles_Demoreel_2015.mov
+
+- name: Copy Exec
+  template:
+    src: create-vod-hls.sh.j2
+    dest: /var/www/hls/create-vod-hls.sh
+
+- name: Execute script
+  command:
+  args:
+    chdir: /var/www/hls
+    cmd: bash /var/www/hls/create-vod-hls.sh /var/www/hls/tears_of_steel_1080p.mov
+
+- name: Execute script
+  command:
+  args:
+    chdir: /var/www/hls
+    cmd: bash /var/www/hls/create-vod-hls.sh /var/www/hls/Cycles_Demoreel_2015.mov

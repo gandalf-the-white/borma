@@ -1,0 +1,7 @@
+---
+# defaults file for roles/istio
+addons_helm_version: 3.19.4
+pip_packages:
+  - python3-kubernetes
+  - python3-yaml
+  - python3-jsonpath-rw

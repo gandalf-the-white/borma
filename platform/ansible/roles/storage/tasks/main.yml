@@ -1,0 +1,37 @@
+---
+# tasks file for ansible/roles/storage
+- name: apt update
+  apt:
+    update-cache: yes
+    cache_valid_time: 3600
+
+- name: prerequisites
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Install dependencies
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Download longhorn manifest
+  get_url:
+    url: "https://raw.githubusercontent.com/longhorn/longhorn/{{ longhorn_version }}/deploy/longhorn.yaml"
+    dest: /tmp/longhorn.yaml
+
+- name: Apply longhorn manifest.
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/longhorn.yaml
+
+- name: Copy pvc
+  copy:
+    src: pvc.yaml
+    dest: /tmp/pvc.yaml
+
+- name: Apply pvc manifest
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/pvc.yaml
+    namespace: default

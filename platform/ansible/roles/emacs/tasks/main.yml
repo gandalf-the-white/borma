@@ -1,0 +1,26 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/emacs
+- name: prerequisites
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - emacs-nox
+    - sbcl
+    - git
+    - aspell
+
+- name: Create directory to include emacs config
+  become: true
+  become_user: spike
+  file:
+    path: /home/spike/.emacs.d
+    state: directory
+
+- name: Copy emacs template
+  become: true
+  become_user: spike
+  template:
+    src: init.el.j2
+    dest: /home/spike/.emacs.d/init.el

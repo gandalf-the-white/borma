@@ -1,0 +1,376 @@
+(require 'package)
+
+(setq package-check-signature nil)
+
+(setq user-full-name "Spike Spiegel"
+      user-mail-address "spikeandfaye@gmail.com")
+
+(setq package-enable-at-startup nil)
+
+(setq package-archives
+      '(("melpa" . "http://melpa.org/packages/")
+	    ("gnu" . "http://mirrors.163.com/elpa/gnu/")
+	    ("org" . "http://orgmode.org/elpa/")))
+
+(package-initialize)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package)
+  (eval-when-compile (require 'use-package)))
+
+(eval-and-compile
+  (setq use-package-always-ensure t
+        use-package-expand-minimally t))
+
+(setq inhibit-startup-message t
+      visible-bell t)
+
+(setq custom-file (make-temp-file "emacs-custom"))
+
+(add-to-list 'load-path "~/emacs.d/lisp/")
+
+(menu-bar-mode -1)
+(global-display-line-numbers-mode 1)
+(global-visual-line-mode 1)
+(global-auto-revert-mode)
+
+(dolist (mode '(org-mode-hook
+                vterm-mode-hook
+                shell-mode-hook
+                treemacs-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+(setq ns-alternate-modifier 'super)
+(setq ns-command-modifier 'meta)
+
+(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
+      backup-by-copying t    ; Don't delink hardlinks
+      version-control t      ; Use version numbers on backups
+      delete-old-versions t  ; Automatically delete excess backups
+      kept-new-versions 20   ; how many of the newest versions to keep
+      kept-old-versions 5    ; and how many of the old
+      )
+
+(setq-default tab-width 4
+              indent-tabs-mode nil
+              c-basic-offset 4)
+
+(set-language-environment 'utf-8)
+(setq locale-coding-system 'utf-8)
+
+;; Set the default encoding system
+(prefer-coding-system        'utf-8)
+(setq default-file-name-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+
+(use-package auto-package-update
+  :ensure t
+  :config
+  (setq auto-package-update-delete-old-versions t
+        auto-package-update-interval 4)
+  (auto-package-update-maybe))
+
+(use-package vertico
+  :ensure t
+  :config
+  (vertico-mode 1))
+
+(use-package rainbow-mode
+  :ensure t)
+
+;;;;;;;;;;;;;;;;;;;;;
+;; T H E M E S     ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package zenburn-theme
+  :ensure t
+  :config (load-theme 'zenburn t))
+
+(use-package doom-modeline
+  :hook (after-init . doom-modeline-mode)
+  :config
+  (setq doom-modeline-persp-name               nil
+        doom-modeline-buffer-encoding          nil
+        doom-modeline-icon                     t
+        doom-modeline-major-mode-icon          nil
+        doom-modeline-major-mode-color-icon    t
+        doom-modeline-buffer-state-icon        t
+        doom-modeline-buffer-modification-icon t
+        doom-modeline-lsp-icon                 t
+        doom-modeline-time-icon                t
+        doom-modeline-time-live-icon           t
+        doom-modeline-buffer-file-name-style  'truncate-with-project))
+
+(setq confirm-kill-emacs 'yes-or-no-p)
+
+(use-package hl-line
+  :ensure t
+  :init (global-hl-line-mode 1))
+
+(use-package highlight-indent-guides
+  :ensure t
+  :commands highlight-indent-guides-mode
+  :config
+  (add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+  (setq highlight-indent-guides-method 'character
+        ;; default is \x2502 but it is very slow on Mac
+        highlight-indent-guides-character ?\xFFE8
+        highlight-indent-guides-responsive 'top)
+  (set-face-background 'highlight-indent-guides-odd-face "darkgray")
+  (set-face-background 'highlight-indent-guides-even-face "dimgray")
+  (set-face-foreground 'highlight-indent-guides-character-face "dimgray"))
+
+(use-package beacon
+  :ensure t
+  :config
+  (beacon-mode t))
+
+;;;;;;;;;;;;;;;;;;;;;
+;; C O M M A N D   ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package dired
+  :ensure nil
+  :bind ([remap list-directory] . dired)
+  :custom
+  (dired-recursive-deletes 'top "Confirm deletion for all top non-empty directories.")
+  (dired-dwim-target t "Try to guess target for actions."))
+
+(use-package dired-x
+  :ensure nil)
+
+(use-package dired-subtree
+  :ensure t
+  :after dired
+  :bind
+  (:map dired-mode-map
+        ([?\t] . dired-subtree-toggle)))
+
+(use-package dired-hide-dotfiles
+  :ensure t
+  :bind
+  (:map dired-mode-map
+        ("." . dired-hide-dotfiles-mode))
+  :hook
+  (dired-mode . dired-hide-dotfiles-mode))
+
+(use-package image-dired
+  :ensure nil)
+
+(use-package which-key
+  :ensure t
+  :config (which-key-mode))
+
+(use-package dired-sidebar
+  :ensure t
+  :bind ("C-c s" . dired-sidebar-toggle-sidebar))
+
+(use-package projectile
+  :ensure t
+  :bind-keymap ("s-p" . projectile-command-map)
+  :init
+  (setq projectile-mode-line-function '(lambda () (format " [%s]" (projectile-project-name))))
+  :config
+  (projectile-mode +1))
+
+(use-package ivy
+  :config
+  (ivy-mode t))
+
+(use-package counsel
+  :demand
+  :bind (("C-c a" . swiper-all)
+         ("C-c e" . counsel-flycheck)
+         ("C-c f" . counsel-fzf)
+         ("C-c g" . counsel-git)
+         ("C-c i" . counsel-imenu)
+         ("C-c j" . counsel-git-grep)
+         ("C-c L" . counsel-locate)
+         ("C-c o" . counsel-outline)
+         ("C-c r" . counsel-rg)
+         ("C-c R" . counsel-register)
+         ("C-c T" . counsel-load-theme)
+         ("C-S-s" . swiper)
+         ([remap dired] . counsel-dired))
+  :init
+  (setq ivy-use-virtual-buffers t)
+  :config
+  (ivy-mode 1)
+  (counsel-mode 1))
+
+(use-package swiper
+  :bind (("M-s" . counsel-grep-or-swiper)))
+
+;;;;;;;;;;;;;;;;;;;
+;;    E V I L    ;;
+;;;;;;;;;;;;;;;;;;;
+
+(use-package evil
+  :ensure t
+  :init
+  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (setq evil-want-keybinding nil)
+  :config
+  (evil-mode 1))
+
+(use-package evil-collection
+  :after evil
+  :ensure t
+  :config
+  (evil-collection-init))
+
+(use-package evil-commentary
+  :ensure t
+  :after evil
+  :init
+  (evil-commentary-mode))
+
+(use-package evil-org
+  :after org
+  :config
+  (add-hook 'org-mode-hook 'evil-org-mode)
+  (add-hook 'evil-org-mode-hook
+            (lambda () (evil-org-set-key-theme))))
+
+(use-package windmove
+  :bind (("C-c <down>" . windmove-down)
+         ("C-c <up>" . windmove-up)
+         ("C-c <left>" . windmove-left)
+         ("C-c <right>" . windmove-right)))
+
+;;;;;;;;;;;;;;;;;;;;;
+;; C O D I N G     ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package rainbow-delimiters
+  :ensure t)
+
+(use-package prog-mode
+  :ensure nil
+  :hook ((prog-mode . rainbow-delimiters-mode)))
+
+(use-package smartparens
+  :diminish smartparens-mode ;; Do not show in modeline
+  :init
+  (require 'smartparens-config)
+  :config
+  (smartparens-global-mode t) ;; These options can be t or nil.
+  (show-smartparens-global-mode t)
+  (setq sp-show-pair-from-inside t)
+  :custom-face
+  (sp-show-pair-match-face ((t (:foreground "White")))) ;; Could also have :background "Grey" for example.
+  )
+
+(use-package magit
+  :bind ("C-x g" . magit-status))
+
+(use-package yasnippet
+  :ensure t
+  :commands yas-minor-mode
+  :hook (after-init . yas-minor-mode)
+  :config
+  (add-to-list 'yas-snippet-dirs "~/.emacs.d/snippets")
+  (yas-global-mode 1))
+
+(use-package yasnippet-snippets)
+
+(use-package company
+  :ensure t
+  :delight company-mode
+  :demand t
+  :init
+  (setq company-idle-delay 0.1
+        company-minimum-prefix-length 1)
+  :bind (:map company-active-map
+         ("C-n" . company-select-next)
+         ("C-p". company-select-previous))
+  :config
+  (global-company-mode))
+
+(use-package flycheck
+  :ensure t)
+
+(use-package lsp-mode
+  :hook (go-mode . lsp)
+  :config
+  (lsp-enable-which-key-integration t))
+
+(use-package lsp-ui
+  :bind (("C-c A" . lsp-execute-code-action)
+         ("C-c d" . lsp-ui-doc-show)
+         ("C-c I" . lsp-ui-imenu)))
+
+(use-package restclient
+  :ensure t
+  :mode (("\\.http\\'" . restclient-mode)))
+
+(use-package yaml-mode
+  :config
+  (require 'yaml-mode))
+
+;;;;;;;;;;;;;;;;;;;;;
+;; L I S P         ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(setq inferior-lisp-program "/usr/bin/sbcl"
+      sly-mrepl-pop-sylvester nil)
+
+(use-package sly-asdf
+  :ensure t
+  :defer t)
+
+(use-package sly-quicklisp
+  :ensure t
+  :defer t)
+
+(use-package sly
+  :ensure t
+  :defer t
+  :after (sly-asdf sly-quicklisp)
+  :custom-face
+  (sly-mrepl-output-face ((t (:foreground "sienna")))))
+
+(use-package paren-face
+  :defer)
+
+(use-package paredit
+  :defer)
+
+(use-package highlight-parentheses
+  :defer)
+
+(defun my-lisp-mode-hook-fn ()
+  (smartparens-mode 0)
+  (paredit-mode 1)
+  (paren-face-mode 1)
+  (highlight-parentheses-mode 1)
+  (company-mode 1))
+
+(add-hook 'lisp-mode-hook 'my-lisp-mode-hook-fn)
+(add-hook 'emacs-lisp-mode-hook 'my-lisp-mode-hook-fn)
+
+;;;;;;;;;;;;;;;;;;;;;
+;; O R G           ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :config
+  (setq org-bullets-bullet-list '("◉" "⁑" "⁂" "❖" "✮" "✱" "✸")))
+
+(setq ispell-program-name "aspell")
+
+(use-package flyspell
+  :ensure t
+  :defer t
+  :init
+  (progn
+    (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+    (add-hook 'text-mode-hook 'flyspell-mode)))

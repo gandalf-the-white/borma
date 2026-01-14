@@ -1,0 +1,34 @@
+---
+- name: install Kubernetes
+  hosts: all
+  become: true
+  serial: 1
+  vars:
+    kubeadm_init_master: "${kubeadm_init_master}"
+    kubeadm_master_group_name: "${kubeadm_master_group_name}"
+    kubeadm_worker_group_name: "${kubeadm_worker_group_name}"
+    advertise_address: "${advertise_address}"
+  environment:
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
+
+  roles:
+    - roles/k3s
+
+- name: install Istio and metallb
+  hosts: bootstrap
+  become: true
+  vars:
+    prefix: "${prefix}"
+    area: "${area}"
+  environment:
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
+
+  roles:
+    # - roles/storage
+    - roles/istio
+    - roles/metallb
+    # - roles/kubecost

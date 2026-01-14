@@ -1,0 +1,20 @@
+---
+# tasks file for roles/k3s
+- name: pre-requisites
+  include_tasks: pre-requisites.yml
+
+- name: Ansible HostName
+  debug:
+    msg: "{{ kubeadm_init_master }} and {{ inventory_hostname }}"
+
+- name: Init cluster
+  include_tasks: init.yml
+  when: kubeadm_init_master == inventory_hostname
+  tags:
+    - init
+
+- name: Join server
+  include_tasks: join.yml
+  when: kubeadm_init_master != inventory_hostname
+  tags:
+    - join

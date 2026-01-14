@@ -1,0 +1,27 @@
+---
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install packages
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Download k3s
+  get_url:
+    url: "https://get.k3s.io"
+    dest: /tmp/script.sh
+    use_proxy: yes
+    mode: "u+x"
+
+- name: Create directory for PVC
+  file:
+    path: /mnt/data/videos
+    state: directory
+    mode: "0777"

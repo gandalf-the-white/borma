@@ -1,0 +1,124 @@
+---
+# tasks file for roles/shared
+# - name: Set hostname
+# hostname:
+# name: "{{ inventory_hostname }}"
+
+- name: Install dependencies
+  apt:
+    name: "{{ kubernetes_packages }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install yq
+  get_url:
+    url: https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    dest: /usr/local/bin/yq
+    mode: "755"
+
+- name: Check if repo already exists
+  stat:
+    path: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  register: __kubernetes_apt_key
+
+- name: Check if repo already exists
+  stat:
+    path: /etc/apt/sources.list.d/kubernetes.list
+  register: __kubernetes_apt_source
+
+- name: Install the key
+  shell: curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  when: not __kubernetes_apt_key.stat.exists
+
+- name: Install the repo
+  shell: "echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list"
+  when: not __kubernetes_apt_source.stat.exists
+  notify: update_apt_cache
+
+- ansible.builtin.meta: flush_handlers
+
+- name: Install kubectl
+  apt:
+    name: kubectl
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Check if kubeconfig already exists
+  stat:
+    path: "{{ ansible_env.HOME }}/.kube"
+  register: __kubeconfig_already_init
+
+- name: Create .kube directory
+  file:
+    path: "{{ ansible_env.HOME }}/.kube"
+    state: directory
+    owner: root
+    group: root
+    mode: 0700
+  when: not __kubeconfig_already_init.stat.exists
+
+- name: Fetch credentials
+  delegate_to: "{{ item.address }}"
+  fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "credentials/{{ item.name }}.yaml"
+    flat: yes
+  loop: "{{ masters }}"
+
+- name: Create directory to include credentials
+  file:
+    path: /tmp/credentials
+    state: directory
+    mode: "600"
+
+- name: Copy credentials
+  Copy:
+    src: "credentials/{{ item.name }}.yaml"
+    dest: /tmp/credentials
+  loop: "{{ masters }}"
+
+- name: Replace 127.0.0.1 by ip address
+  shell: |
+    yq -i '.clusters[].cluster.server = "https://{{ item.address }}:6443"' /tmp/credentials/{{ item.name }}.yaml
+    yq -i '.clusters[].name = "{{ item.name }}"' /tmp/credentials/{{ item.name }}.yaml
+    yq -i '.users[].name = "{{ item.name }}-admin"' /tmp/credentials/{{ item.name }}.yaml
+    yq -i '.contexts[].context.cluster = "{{ item.name }}"' /tmp/credentials/{{ item.name }}.yaml
+    yq -i '.contexts[].context.user = "{{ item.name }}-admin"' /tmp/credentials/{{ item.name }}.yaml
+    yq -i '.contexts[].name = "{{ item.name }}"' /tmp/credentials/{{ item.name }}.yaml
+    yq -i '.current-context = "{{ item.name }}"' /tmp/credentials/{{ item.name }}.yaml
+  loop: "{{ masters }}"
+
+- name: Copy and unzip istioctl
+  unarchive:
+    src: istioctl.zip
+    dest: /usr/local/bin
+
+- name: Copy script thrust template
+  template:
+    src: thrust.sh.j2
+    dest: /root/thrust.sh
+
+- name: Execute script
+  command: bash /root/thrust.sh
+
+- name: Copy script kiali template
+  template:
+    src: secret-kiali.sh.j2
+    dest: /root/secret-kiali.sh
+
+- name: Copy secret kiali
+  copy:
+    src: script-kiali.sh
+    dest: /tmp/script-kiali.sh
+
+- name: Execute script
+  command: bash /root/secret-kiali.sh
+
+- name: Fetch credentials
+  fetch:
+    src: "/tmp/credentials/{{ item.name }}.yaml"
+    dest: "credentials/{{ item.name }}.yaml"
+    flat: yes
+  loop: "{{ masters }}"

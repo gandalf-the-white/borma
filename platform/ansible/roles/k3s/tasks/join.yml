@@ -1,0 +1,44 @@
+---
+- name: Check if master is ready
+  delegate_to: "{{ groups['bootstrap'][0] }}"
+  shell: kubectl get nodes | grep " Ready"
+  register: __cmd_res
+  until: __cmd_res.stdout_lines | count > 0
+  retries: 100
+  delay: 5
+  changed_when: __cmd_res.rc != 0
+
+- name: Get join command
+  delegate_to: "{{ groups['bootstrap'][0] }}"
+  command: cat /var/lib/rancher/k3s/server/node-token
+  register: __k3s_token
+
+- name: Check if server already installed is ready
+  delegate_to: "{{ groups['bootstrap'][0] }}"
+  shell: kubectl get nodes
+  register: __cmd_res
+  changed_when: __cmd_res.rc != 0
+
+- name: Join a master.
+  command: /tmp/script.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_BIN_DIR: /usr/local/bin
+    INSTALL_K3S_EXEC: "server"
+    # K3S_URL: "https://{{ hostvars[groups['bootstrap'][0]]['ansible_default_ipv4']['address'] }}:6443"
+    K3S_URL: "https://{{ hostvars[groups['bootstrap'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443"
+    K3S_TOKEN: "{{ __k3s_token.stdout }}"
+  # when: ansible_hostname not in __cmd_res.stdout and ansible_hostname in groups['master_nodes']
+  when: ansible_facts['hostname'] not in __cmd_res.stdout and ansible_facts['hostname'] in groups['master_nodes']
+
+- name: Join a worker.
+  command: /tmp/script.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_BIN_DIR: /usr/local/bin
+    INSTALL_K3S_EXEC: "agent"
+    # K3S_URL: "https://{{ hostvars[groups['bootstrap'][0]]['ansible_default_ipv4']['address'] }}:6443"
+    K3S_URL: "https://{{ hostvars[groups['bootstrap'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443"
+    K3S_TOKEN: "{{ __k3s_token.stdout }}"
+  # when: ansible_hostname not in __cmd_res.stdout and ansible_hostname in groups['worker_nodes']
+  when: ansible_facts['hostname'] not in __cmd_res.stdout and ansible_facts['hostname'] in groups['worker_nodes']

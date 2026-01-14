@@ -1,0 +1,24 @@
+#!/usr/bin/bash
+
+dir="/tmp/credentials/"
+result=""
+for cluster in $(find $dir -maxdepth 1 -type f -not -path '*/\.*' | sort); do
+  if [ "$result" = "" ]; then
+    result=$cluster
+  else
+    result=$result":"$cluster
+ fi
+done
+
+KUBECONFIG=$result kubectl config view --flatten > ~/.kube/config
+
+for contextA in $(kubectl config get-contexts --no-headers -o name); do
+    for contextB in $(kubectl config get-contexts --no-headers -o name); do
+        if [[ ! "$contextA" == "$contextB" ]]; then
+          istioctl create-remote-secret \
+              --context $contextB \
+              --name $contextB | kubectl \
+              --context $contextA apply -f -
+       fi
+    done
+done

@@ -1,0 +1,11 @@
+---
+# handlers file for roles/qemu-guest-agent
+- name: restart Qemu Guest Agent
+  service:
+    name: qemu-guest-agent
+    state: restarted
+
+- name: enabled Qemu Guest Agent
+  service:
+    name: qemu-guest-agent
+    enabled: true

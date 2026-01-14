@@ -1,0 +1,47 @@
+---
+# tasks file for roles/mongodb
+# https://medium.com/cloud-native-daily/ansible-playbooks-for-nginx-and-mongodb-configuration-2-f34828d4c937
+- name: apt update
+  apt:
+    update-cache: yes
+    cache_valid_time: 3600
+
+- name: Install dependencies
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Import the MongoDB public GPG key and add the gpg key
+  shell: curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+- name: Add the MongoDB source.list
+  copy:
+    dest: "/etc/apt/sources.list.d/mongodb-org-7.0.list"
+    content: |
+      deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse
+
+- name: apt update
+  apt:
+    update-cache: yes
+
+- name: Install mongoDB
+  apt:
+    name: "mongodb-org"
+    state: present
+    update-cache: yes
+
+- name: Enable and start MongoDB service
+  service:
+    name: mongod
+    state: started
+    enabled: yes
+
+- name: Enable remote connections in MongoDB
+  lineinfile:
+    path: /etc/mongod.conf
+    regexp: "^ *bindIp:.*"
+    line: "  bindIp: 0.0.0.0"
+    state: present
+    backup: yes
+  notify:
+    - Restart MongoDB Service

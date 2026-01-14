@@ -1,0 +1,52 @@
+---
+- name: Install K3S on masters.
+  command: /tmp/script.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_BIN_DIR: /usr/local/bin
+    INSTALL_K3S_EXEC: "server --advertise-address={{ advertise_address }} --tls-san={{ advertise_address }} --disable=servicelb --disable=local-storage --disable=traefik --cluster-init"
+    # INSTALL_K3S_EXEC: "server --advertise-address={{ advertise_address }} --tls-san={{ advertise_address }} --disable=servicelb --disable=local-storage --cluster-init"
+  when: groups['bootstrap'] | length  != 1
+
+- name: Install K3S on master.
+  command: /tmp/script.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_BIN_DIR: /usr/local/bin
+    INSTALL_K3S_EXEC: "server --advertise-address={{ advertise_address }} --tls-san={{ advertise_address }} --disable=servicelb --disable=local-storage --disable=traefik"
+    # INSTALL_K3S_EXEC: "server --advertise-address={{ advertise_address }} --tls-san={{ advertise_address }} --disable=servicelb --disable=local-storage"
+  when: groups['bootstrap'] | length  == 1
+
+- name: Check if kubeconfig already exists
+  stat:
+    # path: "{{ ansible_env.HOME }}/.kube"
+    path: "{{ ansible_facts['env']['HOME'] }}/.kube"
+  register: __kubeconfig_already_init
+
+- name: Create .kube directory
+  file:
+    # path: "{{ ansible_env.HOME }}/.kube"
+    path: "{{ ansible_facts['env']['HOME'] }}/.kube"
+    state: directory
+    owner: root
+    group: root
+    mode: 0700
+  when: not __kubeconfig_already_init.stat.exists
+
+- name: Copy admin.conf to .kube/config
+  copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    # dest: "{{ ansible_env.HOME }}/.kube/config"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.kube/config"
+    remote_src: true
+    mode: 0600
+  when: not __kubeconfig_already_init.stat.exists
+
+- name: Fetch k9s
+  get_url:
+    url: "https://github.com/derailed/k9s/releases/download/{{ k9s_version}}/k9s_linux_amd64.deb"
+    dest: /tmp/k9s_Linux_amd64.deb
+
+- name: dpkg install k9s
+  apt:
+    deb: "https://github.com/derailed/k9s/releases/download/{{ k9s_version}}/k9s_linux_amd64.deb"

@@ -1,0 +1,384 @@
+---
+# tasks file for roles/istio
+- name: prerequisites
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Replace pip per apt
+  apt:
+    name: "{{ pip_packages }}"
+    state: present
+
+- name: Install helm if not exists
+  unarchive:
+    src: "https://get.helm.sh/helm-v{{ addons_helm_version }}-linux-amd64.tar.gz"
+    dest: /usr/local/bin
+    extra_opts: "--strip-components=1"
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Install Helm Diff
+  kubernetes.core.helm_plugin:
+    plugin_path: "https://github.com/databus23/helm-diff"
+    state: present
+  tags:
+    - helm
+
+# - name: Add stable prometheus chart repo
+#   kubernetes.core.helm_repository:
+#     name: prometheus-community
+#     repo_url: "https://prometheus-community.github.io/helm-charts"
+
+# - name: Create the prometheus namespace
+#   kubernetes.core.k8s:
+#     name: monitoring
+#     api_version: v1
+#     kind: Namespace
+#     state: present
+
+# - name: Install prometheus
+#   kubernetes.core.helm:
+#     name: prometheus
+#     chart_ref: prometheus-community/kube-prometheus-stack
+#     release_namespace: monitoring
+
+- name: Add stable istio chart repo
+  kubernetes.core.helm_repository:
+    name: istio
+    repo_url: "https://istio-release.storage.googleapis.com/charts"
+  tags:
+    - helm
+
+- name: Create the istio-ingress namespace
+  kubernetes.core.k8s:
+    name: istio-ingress
+    api_version: v1
+    kind: Namespace
+    state: present
+  tags:
+    - helm
+
+- name: Create namespace
+  kubernetes.core.k8s:
+    name: istio-system
+    api_version: v1
+    kind: Namespace
+    state: present
+  tags:
+    - helm
+
+- name: Patch namespace
+  kubernetes.core.k8s:
+    state: patched
+    kind: Namespace
+    name: istio-system
+    definition:
+      metadata:
+        labels:
+          "topology.istio.io/network": "network-{{ area }}"
+  tags:
+    - helm
+
+- name: Add secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Generic
+      metadata:
+        name: cacerts
+        namespace: istio-system
+      data:
+        ca-cert.pem: "{{ lookup('template', 'certs/' + area + '/ca-cert.pem') | b64encode }}"
+        ca-key.pem: "{{ lookup('template', 'certs/' + area + '/ca-key.pem') | b64encode }}"
+        root-cert.pem: "{{ lookup('template', 'certs/' + area + '/root-cert.pem') | b64encode }}"
+        cert-chain.pem: "{{ lookup('template', 'certs/' + area + '/cert-chain.pem') | b64encode }}"
+
+- name: Install istio-base
+  kubernetes.core.helm:
+    name: istio-base
+    chart_ref: istio/base
+    release_namespace: istio-system
+    create_namespace: true
+
+- name: Install istiod
+  kubernetes.core.helm:
+    name: istiod
+    chart_ref: istio/istiod
+    release_namespace: istio-system
+    values:
+      global:
+        # prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+        telemetry:
+          enabled: true
+        istioNamespace: "istio-system"
+        meshID: "{{ meshid }}"
+        network: "network-{{ area }}"
+        multiCluster:
+          clusterName: "{{ area}}"
+      telemetry:
+        v2:
+          enabled: true
+        enabled: true
+      pilot:
+        env:
+          PILOT_ENABLE_PROTOCOL_SNIFFING_FOR_OUTBOUND: true
+      meshConfig:
+        ingressService: "{{ ingress_service }}"
+        ingressSelector: "{{ ingress_selector }}"
+
+- name: Install gateway
+  kubernetes.core.helm:
+    name: istio-ingressgateway
+    chart_ref: istio/gateway
+    release_namespace: istio-ingress
+    create_namespace: true
+
+- name: Install eastwest_gateway
+  kubernetes.core.helm:
+    name: eastwest-gateway
+    chart_ref: istio/gateway
+    release_namespace: istio-ingress
+    values:
+      networkGateway: "network-{{ area }}"
+      global:
+        network: "network-{{ area }}"
+      labels:
+        istio: "eastwestgateway"
+        app: "istio-eastwestgateway"
+        topology.istio.io/network: "network-{{ area }}"
+      env:
+        name: "ISTIO_META_REQUESTED_NETWORK_VIEW"
+        value: "network-{{ area }}"
+
+- name: Apply the gateway
+  kubernetes.core.k8s:
+    namespace: istio-ingress
+    state: present
+    definition: "{{ lookup('template', 'cross-network-gateway.yaml') | from_yaml }}"
+
+- name: Add stable prometheus chart repo
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: "https://prometheus-community.github.io/helm-charts"
+
+- name: Create the prometheus namespace
+  kubernetes.core.k8s:
+    name: monitoring
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Install kube-prometheus-stack
+  kubernetes.core.helm:
+    name: kps
+    chart_ref: prometheus-community/kube-prometheus-stack
+    release_namespace: monitoring
+    values:
+      grafana:
+        enabled: true
+      prometheus:
+        prometheusSpec:
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
+
+# -------- ServiceMonitor pour Istiod --------
+- name: Apply ServiceMonitor for istiod
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: istiod
+        namespace: monitoring
+        labels:
+          release: kps # <- doit matcher le release du chart kps
+      spec:
+        selector:
+          matchLabels:
+            app: istiod
+        namespaceSelector:
+          matchNames:
+            - istio-system
+        endpoints:
+          - port: http-monitoring
+            interval: 15s
+
+# -------- ServiceMonitor pour la gateway envoy --------
+- name: Apply ServiceMonitor for istio-ingressgateway
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: istio-ingressgateway
+        namespace: monitoring
+        labels:
+          release: kps
+      spec:
+        selector:
+          matchLabels:
+            istio: ingressgateway
+        namespaceSelector:
+          matchNames:
+            - istio-ingress
+        endpoints:
+          - port: http-envoy-prom
+            interval: 15s
+
+# -------- PodMonitor pour tous les sidecars envoy --------
+- name: Apply PodMonitor for Istio envoy sidecars
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: PodMonitor
+      metadata:
+        name: istio-envoy
+        namespace: monitoring
+        labels:
+          release: kps
+      spec:
+        namespaceSelector:
+          any: true
+        selector:
+          matchExpressions:
+            - { key: istio.io/rev, operator: Exists }
+        podMetricsEndpoints:
+          - port: http-envoy-prom
+            interval: 15s
+            path: /stats/prometheus
+            # scheme: http
+
+# - name: Create the prometheus namespace
+#   kubernetes.core.k8s:
+#     name: monitoring
+#     api_version: v1
+#     kind: Namespace
+#     state: present
+# - name: Install prometheus
+#   kubernetes.core.helm:
+#     name: prometheus
+#     chart_ref: prometheus-community/kube-prometheus-stack
+#     release_namespace: monitoring
+# values:
+#   prometheusSpec:
+#     # prometheusSpec:
+#     serviceMonitorSelectorNilUsesHelmValues: false
+#     additionalServiceMonitors:
+#       - name: istio-istiod
+#         selector:
+#           matchLabels:
+#             app: istiod
+#         namespaceSelector:
+#           matchNames:
+#             - istio-system
+#         endpoints:
+#           - port: http-monitoring
+#             interval: 15s
+#       - name: istio-ingressgateway
+#         selector:
+#           matchLabels:
+#             istio: ingressgateway
+#             app: istio-ingressgateway
+#         namespaceSelector:
+#           matchNames:
+#             - istio-ingress
+#         endpoints:
+#           - port: status-port
+#             path: /stats/prometheus
+#             interval: 15s
+#       - name: eastwest-gateway
+#         selector:
+#           matchLabels:
+#             istio: eastwestgateway
+#             app: istio-eastwestgateway
+#           namespaceSelector:
+#             matchNames:
+#               - istio-ingress
+#           endpoints:
+#             - port: tls-istiod
+#               interval: 15s
+#       - name: istio-sidecars
+#         namespace: monitoring
+#         selector:
+#           matchExpressions:
+#             - key: istio.io/rev
+#               operator: Exists
+#         namespaceSelector:
+#           any: true
+#         endpoints:
+#           - port: http-envoy-prom
+#             path: /stats/prometheus
+#             interval: 15s
+#             relabelings:
+#               - sourceLabels: [__meta_kubernetes_pod_container_port_name]
+#                 regex: ".*-envoy-prom"
+#                 action: keep
+# tags:
+# - lolo
+# - name: Copy prometheus config
+#   Copy:
+#     src: prometheus.yaml
+#     dest: /tmp
+# - name: execute prometheus
+#   kubernetes.core.k8s:
+#     state: present
+#     src: /tmp/prometheus.yaml
+# - name: debug
+#   debug:
+#     var: area
+- name: Add Grafana Helm repo
+  kubernetes.core.helm_repository:
+    name: grafana
+    repo_url: "https://grafana.github.io/helm-charts"
+  when: area is defined and area  == "lolo"
+
+- name: Install Grafana with custom values
+  kubernetes.core.helm:
+    name: grafana
+    chart_ref: grafana/grafana
+    release_namespace: istio-system
+    values:
+      datasources:
+        datasources.yaml:
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              # url: "http://prometheus.istio-system.svc.cluster.local:9090"
+              url: "http://kps-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+              access: proxy
+              isDefault: true
+  when: area is defined and area  == "lolo"
+
+- name: Add stable kiali chart repo
+  kubernetes.core.helm_repository:
+    name: kiali
+    repo_url: "https://kiali.org/helm-charts"
+  when: area is defined and area  == "lolo"
+
+- name: Install kiali
+  kubernetes.core.helm:
+    name: kiali-server
+    chart_ref: kiali/kiali-server
+    release_namespace: istio-system
+    values:
+      auth:
+        strategy: "anonymous"
+      deployment:
+        cluster_wide_access: true
+        accessible_namespaces: ["**"]
+      external_services:
+        prometheus:
+          # url: "http://prometheus.istio-system.svc.cluster.local:9090"
+          url: "http://kps-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+  when: area is defined and area  == "lolo"

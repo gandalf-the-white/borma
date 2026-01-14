@@ -1,0 +1,19 @@
+#+title: Just a simple script to build a K3s cluster
+#+author: Spike Spiegel
+
+* Introduction
+It's just a simple project including the script to build a /K3s/ cluster with
++ istio
++ k9s
++ metallb
+
+* Platform
+** Server
+[[file:images/PLATFORM.svg]]
+** Software
+[[file:images/AUTOMATION.svg]]
+** Communication
+[[file:images/ISTIO.svg]]
+
+* Wasm
+We'll try to manage communication and encryption through addon.

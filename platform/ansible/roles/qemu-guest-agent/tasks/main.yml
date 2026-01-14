@@ -1,0 +1,14 @@
+---
+# tasks file for roles/qemu-guest-agent
+- name: apt update
+  apt:
+    update-cache: yes
+    cache_valid_time: 3600
+
+- name: Install qemu-guest-agent
+  apt:
+    name: "{{ packages }}"
+    state: present
+  notify:
+    - enabled Qemu Guest Agent
+    - restart Qemu Guest Agent

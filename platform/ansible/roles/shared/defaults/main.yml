@@ -1,0 +1,10 @@
+---
+# defaults file for roles/shared
+kubernetes_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gpg
+  - lsb-release
+  - bridge-utils
+  - unzip

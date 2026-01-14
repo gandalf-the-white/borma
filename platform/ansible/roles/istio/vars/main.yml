@@ -1,0 +1,8 @@
+---
+# vars file for roles/istio
+ingress_service: "istio-gateway"
+ingress_selector: "gateway"
+
+meshid: "mesh1"
+clustername: "cluster-google"
+network: "network-google"
