@@ -9,16 +9,6 @@ It's just a simple project including the script to build a /K3s/ cluster with
 
 * Platform
 ** Server
-#+begin_html
-<img src="images/PLATFORM.svg" width="400">
-#+end_html
-** Software
-#+begin_html
-<img src="images/AUTOMATION.svg" width="400">
-#+end_html
-** Communication
-#+begin_html
-<img src="images/ISTIO.svg" width="400"> 
-#+end_html
+[[file:images/PLATFORM.svg]]
 * Wasm
 We'll try to manage communication and encryption through addon.
