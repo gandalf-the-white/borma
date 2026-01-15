@@ -1,9 +1,0 @@
----
-# defaults file for roles/hls
-packages:
-  - emacs-nox
-  - curl
-  - libnginx-mod-rtmp
-  - ffmpeg
-  - iftop
-  - bc

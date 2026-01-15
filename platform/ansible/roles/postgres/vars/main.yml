@@ -1,5 +1,0 @@
----
-# vars file for roles/postgres
-db_user: spike
-db_password: valentine
-db_name: spike

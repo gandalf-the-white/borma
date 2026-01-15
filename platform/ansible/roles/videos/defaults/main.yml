@@ -1,8 +1,0 @@
-#SPDX-License-Identifier: MIT-0
----
-# defaults file for roles/videos
-packages:
-  - ffmpeg
-  - iftop
-  - bc
-  - nginx

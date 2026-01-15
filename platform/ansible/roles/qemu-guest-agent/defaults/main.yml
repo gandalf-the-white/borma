@@ -1,4 +1,0 @@
----
-# defaults file for roles/qemu-guest-agent
-packages:
-  - qemu-guest-agent
