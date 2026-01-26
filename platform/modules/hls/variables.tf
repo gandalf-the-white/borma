@@ -1,0 +1,16 @@
+variable "area" {}
+variable "prefix" {}
+variable "octet" {}
+variable "userctn" {}
+variable "publkeyctn" {}
+variable "privkeyctn" {}
+variable "vlan" {}
+variable "target_node" {}
+variable "size" {}
+variable "clone" {}
+variable "storage" {}
+variable "bridge" {}
+variable "nameserver" {}
+variable "cloudinit" {}
+variable "memory" {}
+variable "proxy" {}

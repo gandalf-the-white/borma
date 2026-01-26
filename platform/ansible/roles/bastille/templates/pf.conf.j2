@@ -1,0 +1,36 @@
+##### Macros #####
+ext_if = "{{ ext_if }}"
+ssh_port = 22
+admin_ip = {{ admin_ip }}
+
+{% for jail in jails %}
+{{ jail.name | replace('-', '_') }} = "{{ jail.address.split('/')[0] }}"
+{% endfor %}
+
+##### Options globales #####
+set block-policy return
+scrub in on $ext_if all fragment reassemble
+set skip on lo0
+set skip on bastille0
+
+table <jails> persist {
+{% for jail in jails %}
+  {{ jail.address.split('/')[0] }}{% if not loop.last %},{% endif %}
+{% endfor %}
+}
+
+nat on $ext_if from <jails> to any -> ($ext_if:0)
+rdr-anchor "rdr/*"
+
+{% for jail in jails %}
+{% for port in jail.ports %}
+rdr pass on $ext_if proto tcp from any to ($ext_if) port {{ port }} -> ${{ jail.name | replace('-', '_') }}
+{% endfor %}
+{% endfor %}
+
+
+pass in quick on $ext_if proto tcp from $admin_ip to any port $ssh_port keep state
+
+block in all
+pass out quick keep state
+antispoof for $ext_if inet

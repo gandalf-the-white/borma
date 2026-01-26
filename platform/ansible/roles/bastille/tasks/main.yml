@@ -1,0 +1,129 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/bastille
+- name: Update pkg repository on host
+  command: pkg update -f
+
+- name: Upgrade all packages on host
+  command: pkg upgrade -y
+
+- name: Install bastille
+  community.general.pkgng:
+    name: bastille
+    state: present
+
+- name: Enable bastille at boot
+  community.general.sysrc:
+    name: bastille_enable
+    value: "YES"
+
+- name: Clone interface
+  ansible.builtin.shell: /usr/sbin/sysrc cloned_interfaces+=lo1
+
+- name: Name interface
+  community.general.sysrc:
+    name: ifconfig_lo1_name
+    value: "bastille0"
+
+- name: Start service
+  ansible.builtin.shell: /usr/sbin/service netif cloneup
+  register: result_service
+
+- name: Deploy pf.conf
+  template:
+    src: pf.conf.j2
+    dest: /etc/pf.conf
+    owner: root
+    group: wheel
+    mode: "0644"
+
+- name: check pf.conf
+  command: pfctl -vnf /etc/pf.conf
+  register: pf_check
+  changed_when: false
+
+- name: reload pf
+  command: pfctl -f /etc/pf.conf
+  when: pf_check.rc == 0
+  notify: reload pf
+
+- name: Bootstrap Bastille release
+  command: bastille bootstrap {{ bastille_release }}
+  args:
+    creates: "/usr/local/bastille/releases/{{ bastille_release }}"
+
+- name: Create jail
+  ansible.builtin.shell: "bastille create {{ item.name }} {{ bastille_release }}  {{ item.address }}"
+  with_items: "{{ jails }}"
+  args:
+    creates: "/usr/local/bastille/jails/{{ item.name }}"
+  notify: reload pf
+
+- name: reload
+  command: "pfctl -f /etc/pf.conf"
+
+- name: Update jail
+  ansible.builtin.shell: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update "
+  with_items: "{{ jails }}"
+
+- name: Add packages
+  ansible.builtin.shell: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
+  loop: "{{ jails|subelements('packages') }}"
+
+- name: Enable nginx in jail
+  ansible.builtin.shell: >
+    bastille sysrc {{ item.name }} nginx_enable=YES
+  loop: "{{ jails }}"
+
+- name: Ensure nginx is running
+  ansible.builtin.shell: >
+    bastille service {{ item.name }} nginx onestatus || bastille service {{ item.name }} nginx start
+  loop: "{{ jails }}"
+
+- name: Create video directory
+  file:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/var/www/videos/hls"
+    state: directory
+    owner: www
+    group: www
+    mode: "0755"
+    recurse: yes
+  loop: "{{ jails }}"
+  tags: jails
+
+- name: Create nginx conf directory
+  file:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/nginx/conf.d"
+    state: directory
+    owner: root
+    group: wheel
+    mode: "0644"
+    recurse: yes
+  loop: "{{ jails }}"
+  tags: jails
+
+- name: Deploy nginx HLS configuration
+  template:
+    src: video-storage.conf.j2
+    dest: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/nginx/conf.d/video-storage.conf"
+    owner: root
+    group: wheel
+    mode: "0644"
+  loop: "{{ jails }}"
+  tags: jails
+
+- name: Ensure nginx includes conf.d directory
+  blockinfile:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/nginx/nginx.conf"
+    marker: "# {mark} ANSIBLE MANAGED CONF.D INCLUDE"
+    insertbefore: '^\}'
+    block: |
+      include /usr/local/etc/nginx/conf.d/*.conf;
+  loop: "{{ jails }}"
+  tags: jails
+
+- name: Ensure nginx is running
+  ansible.builtin.shell: >
+    bastille service {{ item.name }} nginx restart
+  loop: "{{ jails }}"
+  tags: jails
