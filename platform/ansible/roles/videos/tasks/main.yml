@@ -1,0 +1,22 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for roles/videos
+
+- name: Download films
+  get_url:
+    url: "{{ item.url }}"
+    dest: "/usr/local/bastille/jails/{{ jail }}/root/var/www/videos/hls/{{ item.name }}.mov"
+  loop: "{{ videos }}"
+
+- name: Copy Exec
+  template:
+    src: create-vod-hls.sh.j2
+    dest: "/usr/local/bastille/jails/{{ jail }}/root/var/www/videos/hls/create-vod-hls.sh"
+
+- name: Execute script
+  command:
+  args:
+    chdir: "/usr/local/bastille/jails/jail-hls/root/var/www/videos/hls"
+    cmd: |
+      bash /usr/local/bastille/jails/{{ jail }}/root/var/www/videos/hls/create-vod-hls.sh /usr/local/bastille/jails/{{ jail }}/root/var/www/videos/hls/{{ item.name }}.mov
+  loop: "{{ videos }}"

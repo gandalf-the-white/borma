@@ -1,21 +1,21 @@
 server {
-       listen 80;
+       listen 80 default_server;
 
 {% for jail in jails %}
-       server_name {{ jail.name }};
+       server_name {{ jail.name }} 127.0.0.1 localhost;
 {% endfor %}
 
        root /var/www/videos;
 
        location /hls/ {
-                types {
-                      application/vnd.apple.mpegurl m3u8;
-                      video/mp2t ts;
-                }
+            types {
+                  application/vnd.apple.mpegurl m3u8;
+                  video/mp2t ts;
+            }
 
-                add_header Access-Control-Allow-Origin "*";
-                add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header Access-Control-Allow-Origin "*";
+            add_header Cache-Control "public, max-age=31536000, immutable";
 
-                try_files $uri 404;
+            try_files $uri 404;
        }
 }

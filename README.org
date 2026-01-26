@@ -10,5 +10,5 @@ It's just a simple project including the script to build a /K3s/ cluster with
 * Platform
 ** Server
 [[file:images/PLATFORM.svg]]
-* Wasm
-We'll try to manage communication and encryption through addon.
+* Video
+** Script

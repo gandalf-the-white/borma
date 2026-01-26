@@ -12,4 +12,4 @@
 
   roles:
     - roles/bastille
-    # - roles/bsd-nginx
+    - roles/videos

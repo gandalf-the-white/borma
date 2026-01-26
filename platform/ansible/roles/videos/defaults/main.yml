@@ -1,0 +1,11 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for roles/videos
+
+jail: "jail-hls"
+
+videos:
+  - name: "tears"
+    url: "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov"
+  - name: "real"
+    url: "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/Cycles_Demoreel_2015.mov"

@@ -7,10 +7,11 @@
 - name: Upgrade all packages on host
   command: pkg upgrade -y
 
-- name: Install bastille
+- name: Install bastille and more
   community.general.pkgng:
-    name: bastille
+    name: "{{ item }}"
     state: present
+  with_items: "{{ packages }}"
 
 - name: Enable bastille at boot
   community.general.sysrc:
