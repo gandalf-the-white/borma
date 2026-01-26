@@ -168,17 +168,17 @@ resource "local_file" "playbook" {
   file_permission = "0644"
 }
 
-# resource "null_resource" "play_ansible" {
-#   provisioner "local-exec" {
-#     command = "ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-k3s.yaml"
-#   }
-#   depends_on = [
-#     proxmox_vm_qemu.master_server,
-#     proxmox_vm_qemu.worker_server,
-#     local_file.inventory,
-#     local_file.playbook
-#   ]
-# }
+resource "null_resource" "play_ansible" {
+  provisioner "local-exec" {
+    command = "ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-k3s.yaml"
+  }
+  depends_on = [
+    proxmox_vm_qemu.master_server,
+    proxmox_vm_qemu.worker_server,
+    local_file.inventory,
+    local_file.playbook
+  ]
+}
 
 
 ####################################################################################
