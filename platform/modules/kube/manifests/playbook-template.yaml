@@ -28,7 +28,8 @@
     no_proxy: "${noproxy}"
 
   roles:
-    # - roles/storage
-    - roles/istio
     - roles/metallb
+    # - roles/storage
+    # - roles/istio
+    - roles/envoy-gateway
     # - roles/kubecost

@@ -35,10 +35,58 @@ module "hls" {
   bridge      = var.bridge
   octet       = "55"
   vlan        = 200
-  memory      = 2048
+  memory      = 4096
   nameserver  = var.nameserver
   target_node = var.target_node
   clone       = "freebsd-143-tmpl"
+  size        = 30
+  storage     = var.storage
+  cloudinit   = var.cloudinit
+  proxy       = var.proxy
+  userctn     = var.userctn
+  publkeyctn  = var.publkeyctn
+  privkeyctn  = var.privkeyctn
+}
+
+####################################################################################
+## F R O N T E N D
+####################################################################################
+
+module "frontend" {
+  source      = "./modules/frontend/"
+  area        = "south"
+  prefix      = "192.188.200" # VLAN 200
+  bridge      = var.bridge
+  octet       = "56"
+  vlan        = 200
+  memory      = 2048
+  nameserver  = var.nameserver
+  target_node = var.target_node
+  clone       = "ubuntu-2404-tmpl"
+  size        = 30
+  storage     = var.storage
+  cloudinit   = var.cloudinit
+  proxy       = var.proxy
+  userctn     = var.userctn
+  publkeyctn  = var.publkeyctn
+  privkeyctn  = var.privkeyctn
+}
+
+####################################################################################
+## B A C K E N D
+####################################################################################
+
+module "backend" {
+  source      = "./modules/backend"
+  area        = "south"
+  prefix      = "192.188.200" # VLAN 200
+  bridge      = var.bridge
+  octet       = "57"
+  vlan        = 200
+  memory      = 2048
+  nameserver  = var.nameserver
+  target_node = var.target_node
+  clone       = "ubuntu-2404-tmpl"
   size        = 30
   storage     = var.storage
   cloudinit   = var.cloudinit
@@ -60,4 +108,14 @@ output "master_south_ip_address" {
 output "hls_server_ip_address" {
   description = "Hls Server IP Address"
   value       = module.hls
+}
+
+output "frontend_server_ip_address" {
+  description = "Frontend Server IP Address"
+  value       = module.frontend
+}
+
+output "backend_server_ip_address" {
+  description = "Backend Server IP Address"
+  value       = module.backend
 }

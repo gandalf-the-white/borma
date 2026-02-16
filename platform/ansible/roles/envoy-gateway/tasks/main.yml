@@ -1,0 +1,104 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/envoy-gateway
+- name: prerequisites
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Replace pip per apt
+  apt:
+    name: "{{ pip_packages }}"
+    state: present
+
+- name: Install helm if not exists
+  unarchive:
+    src: "https://get.helm.sh/helm-v{{ addons_helm_version }}-linux-amd64.tar.gz"
+    dest: /usr/local/bin
+    extra_opts: "--strip-components=1"
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Install Helm Diff
+  kubernetes.core.helm_plugin:
+    plugin_path: "https://github.com/databus23/helm-diff"
+    state: present
+  tags:
+    - helm
+
+- name: Créer le namespace pour Envoy Gateway
+  kubernetes.core.k8s:
+    name: "{{ namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Install EG
+  kubernetes.core.helm:
+    chart_ref: oci://docker.io/envoyproxy/gateway-helm
+    chart_version: "{{ envoy_gateway_version }}"
+    create_namespace: false
+    release_name: envoy-gateway
+    release_namespace: "{{ namespace }}"
+    release_state: present
+    update_repo_cache: true
+    # values:
+    # service:
+    # type: "LoadBalancer"
+  # tags: eg
+# - name: Vérifier que les pods Envoy Gateway sont prêts
+#   kubernetes.core.k8s_info:
+#     kind: Pod
+#     namespace: "{{ namespace }}"
+#     label_selectors:
+#       - app.kubernetes.io/instance = envoy-gateway
+#   register: envoy_gateway_pods
+#   until: envoy_gateway_pods.resources | length > 0 and envoy_gateway_pods.resources[0].status.phase == "Running"
+#   retries: 10
+#   delay: 10
+# - name: Copy gatewayclass
+#   copy:
+#     src: gatewayclass.yaml
+#     dest: /tmp
+
+# - name: Install gatewayclass
+#   kubernetes.core.k8s:
+#     state: present
+#     src: /tmp/gatewayclass.yaml
+
+# - name: Copy gateway
+#   copy:
+#     src: gateway.yaml
+#     dest: /tmp
+#   tags: eg
+
+# - name: Install gateway
+#   kubernetes.core.k8s:
+#     namespace: default
+#     state: present
+#     src: /tmp/gateway.yaml
+#   tags: eg
+
+- name: Copy gatewayclass
+  copy:
+    src: "{{ item }}"
+    dest: /tmp
+  loop:
+    - gatewayclass.yaml
+    - gateway.yaml
+
+- name: Install gatewayclass
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/gatewayclass.yaml
+
+- name: Install gateway
+  kubernetes.core.k8s:
+    namespace: default
+    state: present
+    src: /tmp/gateway.yaml
+  tags: eg

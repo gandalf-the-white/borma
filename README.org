@@ -12,3 +12,6 @@ It's just a simple project including the script to build a /K3s/ cluster with
 [[file:images/PLATFORM.svg]]
 * Video
 ** Script
+* Reference
++ [[https://dev.to/naveens16/envoy-sidecar-proxy-mastering-traffic-control-observability-and-autoscaling-in-kubernetes-kcg][Naveen]]
++ 
