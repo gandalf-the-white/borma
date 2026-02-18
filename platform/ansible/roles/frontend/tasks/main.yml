@@ -111,13 +111,11 @@
   command: systemctl --user daemon-reload
   become: true
   become_user: spike
-  tags: emacs
 
 - name: Enable service
   command: systemctl --user enable emacs
   become: true
   become_user: spike
-  tags: emacs
 
 - name: Start service
   environment:
@@ -126,9 +124,10 @@
   command: systemctl --user start emacs
   become: true
   become_user: spike
-  tags: emacs
 
 - name: Add bash
-  command: echo 'alias e="emacsclient -t -a \"\""' >> ~/.bashrc
+  shell: |
+    echo "alias e='emacsclient -t -a \"\"'" >> ~/.bashrc
   become: true
   become_user: spike
+  tags: emacs
