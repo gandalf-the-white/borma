@@ -54,6 +54,7 @@ module "hls" {
 
 module "frontend" {
   source      = "./modules/frontend/"
+  name        = "frontend"
   area        = "south"
   prefix      = "192.188.200" # VLAN 200
   bridge      = var.bridge
@@ -78,6 +79,7 @@ module "frontend" {
 
 module "backend" {
   source      = "./modules/backend"
+  name        = "backend"
   area        = "south"
   prefix      = "192.188.200" # VLAN 200
   bridge      = var.bridge

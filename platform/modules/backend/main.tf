@@ -55,7 +55,7 @@ resource "proxmox_vm_qemu" "server" {
   provisioner "remote-exec" {
     inline = [
       "cloud-init status --wait",
-      "sudo hostnamectl set-hostname ${var.area}-server"
+      "sudo hostnamectl set-hostname ${var.name}-${var.area}"
     ]
 
     connection {
