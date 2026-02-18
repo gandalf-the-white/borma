@@ -1,0 +1,14 @@
+[Unit]
+Description=Emacs text editor daemon (user)
+Documentation=info:emacs man:emacs(1) https://gnu.org/software/emacs/
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/emacs --daemon
+ExecStop=/usr/bin/emacsclient --eval "(kill-emacs)"
+Restart=on-failure
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

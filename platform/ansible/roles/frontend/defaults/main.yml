@@ -1,0 +1,26 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/frontend
+packages:
+  - git
+  - sbcl
+  - emacs-nox
+  - aspell
+  - iptables
+
+repo: https://github.com/gandalf-the-white/yano.git
+
+yano_home: /home/spike/yano
+
+quicklisp_home: /home/spike/quicklisp
+quicklisp_bootstrap: /tmp/quicklisp.lisp
+quicklisp_url: https://beta.quicklisp.org/quicklisp.lisp
+
+lisp_cmd: sbcl
+sbcl_system_rc: /home/spike/.sbclrc
+
+account: spike spiegel
+email: spike@gmail.com
+emacs_home: /home/spike/.emacs.d
+
+systemd_user: /home/spike/.config/systemd/user

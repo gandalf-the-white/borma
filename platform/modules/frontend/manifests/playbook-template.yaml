@@ -1,0 +1,14 @@
+---
+- name: install frontend
+  hosts: all
+  become: true
+
+  vars:
+
+  environment:
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
+
+  roles:
+    - frontend

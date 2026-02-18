@@ -1,0 +1,48 @@
+#!/bin/sh
+set -e
+
+LAN_IF="eth0"                 # interface du backend (adapte si besoin)
+WEB_PORT="8000"
+SSH_PORT="22"
+TRANSFER_PORT="45000"
+REMOTE_IP="192.188.200.57"
+
+# Nettoyage
+iptables -F
+iptables -t nat -F
+iptables -X
+
+# 0) Toujours autoriser loopback + connexions établies
+iptables -I INPUT 1 -i lo -j ACCEPT
+iptables -I INPUT 2 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# 1) Autoriser ton SSH (NOUVELLES connexions) depuis TON IP
+iptables -I INPUT 3 -p tcp --dport 22 -m conntrack --ctstate NEW -j ACCEPT
+
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+
+# 3) Loopback
+iptables -A INPUT  -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# 4) Connexions établies (retours)
+iptables -A INPUT  -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# 5) Autoriser nginx : entrée TCP 8000 (depuis le LAN/proxy)
+iptables -A INPUT -i "$LAN_IF" -p tcp --dport "$WEB_PORT" -m conntrack --ctstate NEW -j ACCEPT
+
+# 6) Autoriser l'accès local à l'appli de transfert sur 127.0.0.1:45000
+iptables -A OUTPUT -o lo -p tcp --dport "$TRANSFER_PORT" -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT  -i lo -p tcp --sport "$TRANSFER_PORT" -j ACCEPT
+
+# 7) Forcer l'appli métier (myapp) à passer par l'appli transfert locale (REDIRECT -> 45000)
+# Toute tentative de myapp vers REMOTE_IP:* devient 127.0.0.1:45000
+iptables -t nat -A OUTPUT -p tcp -d "$REMOTE_IP" -j REDIRECT --to-ports "$TRANSFER_PORT"
+
+# 8) Autoriser l'appli de transfert à sortir VRAIMENT vers REMOTE_IP:45000
+iptables -A OUTPUT -o "$LAN_IF" -p tcp -d "$REMOTE_IP" --dport "$TRANSFER_PORT" -m conntrack --ctstate NEW -j ACCEPT
+
+# 9) Bloquer toute autre sortie directe vers REMOTE_IP:45000 (garantit "passage obligatoire")
+iptables -A OUTPUT -o "$LAN_IF" -p tcp -d "$REMOTE_IP" --dport "$TRANSFER_PORT" -j REJECT
