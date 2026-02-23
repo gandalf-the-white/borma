@@ -74,3 +74,48 @@ variable "workers" {
     }
   ]
 }
+
+
+variable "lisp" {
+  type = list(object({
+    name    = string
+    octet   = string
+    memory  = number
+    cores   = number
+    sockets = number
+  }))
+  default = [
+    # {
+    # name    = "frontend"
+    # octet   = "211"
+    # memory  = 2048
+    # cores   = 1
+    # sockets = 1
+    # }, {
+    # name    = "backend"
+    # octet   = "212"
+    # memory  = 2048
+    # cores   = 1
+    # sockets = 1
+    # },
+    {
+      name    = "proxy1"
+      octet   = "213"
+      memory  = 1024
+      cores   = 1
+      sockets = 1
+      }, {
+      name    = "proxy2"
+      octet   = "214"
+      memory  = 1024
+      cores   = 1
+      sockets = 1
+      }, {
+      name    = "oracle"
+      octet   = "215"
+      memory  = 1024
+      cores   = 1
+      sockets = 1
+    }
+  ]
+}

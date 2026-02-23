@@ -1,0 +1,13 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/emacs
+packages:
+  - git
+  - emacs-nox
+  - aspell
+
+account: spike spiegel
+email: spike@gmail.com
+emacs_home: /home/spike/.emacs.d
+
+systemd_user: /home/spike/.config/systemd/user

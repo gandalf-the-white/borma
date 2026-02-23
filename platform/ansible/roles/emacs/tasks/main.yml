@@ -1,0 +1,76 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/emacs
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install packages
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Ensure emacs directory exists
+  ansible.builtin.file:
+    path: "{{ emacs_home }}"
+    state: directory
+    owner: spike
+    group: spike
+    mode: "0755"
+
+- name: Copy init.el
+  ansible.builtin.template:
+    src: init.el.j2
+    dest: "{{ emacs_home }}/init.el"
+    owner: spike
+    group: spike
+    mode: "0644"
+
+- name: Create systemd user
+  ansible.builtin.file:
+    path: "{{ systemd_user }}"
+    state: directory
+    owner: spike
+    group: spike
+    mode: "0755"
+
+- name: Copy template
+  ansible.builtin.template:
+    src: emacs.service.j2
+    dest: "{{ systemd_user }}/emacs.service"
+
+- name: Enable lingering for spike
+  become: true
+  command: loginctl enable-linger spike
+
+- name: Get spike uid
+  command: id -u spike
+  register: spike_uid
+  changed_when: false
+
+- name: Daemon reload
+  command: systemctl --user daemon-reload
+  become: true
+  become_user: spike
+
+- name: Enable service
+  command: systemctl --user enable emacs
+  become: true
+  become_user: spike
+
+- name: Start service
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ spike_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ spike_uid.stdout }}/bus"
+  command: systemctl --user start emacs
+  become: true
+  become_user: spike
+
+- name: Add bash
+  shell: |
+    echo "alias e='emacsclient -t -a \"\"'" >> ~/.bashrc
+  become: true
+  become_user: spike
+  tags: emacs

@@ -1,0 +1,61 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/quicklisp
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install packages
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Ensure quicklisp directory exists
+  ansible.builtin.file:
+    path: "{{ quicklisp_home }}"
+    state: directory
+    owner: spike
+    group: spike
+    mode: "0755"
+
+- name: Download quicklisp bootstrap
+  ansible.builtin.get_url:
+    url: "{{ quicklisp_url }}"
+    dest: "{{ quicklisp_bootstrap }}"
+    mode: "0644"
+
+- name: Install Quicklisp (SBCL) non-interactively
+  ansible.builtin.command: >
+    {{ lisp_cmd }}
+    --noinform
+    --non-interactive
+    --load {{ quicklisp_bootstrap }}
+    --eval '(quicklisp-quickstart:install :path "{{ quicklisp_home }}/")'
+    --quit
+  become: true
+  become_user: spike
+  args:
+    creates: "{{ quicklisp_home }}/setup.lisp"
+
+- name: Ensure SBCL system rc exists
+  ansible.builtin.file:
+    path: "{{ sbcl_system_rc }}"
+    state: touch
+    owner: spike
+    group: spike
+    mode: "0644"
+
+- name: Add Quicklisp autoload to /etc/sbclrc
+  ansible.builtin.blockinfile:
+    path: "{{ sbcl_system_rc }}"
+    marker: ";; {mark} ANSIBLE MANAGED QUICKLISP"
+    block: |
+      ;;; The following lines added by ql:add-to-init-file:
+      #-quicklisp
+      (let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
+                                             (user-homedir-pathname))))
+        (when (probe-file quicklisp-init)
+           (load quicklisp-init)))
+
+      (setf sb-impl::*default-external-format* :utf-8)
