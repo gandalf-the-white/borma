@@ -159,3 +159,13 @@
     bastille service {{ item.name }} nginx restart
   loop: "{{ jails }}"
   tags: jails
+
+- name: Replace the prompt
+  ansible.builtin.lineinfile:
+    path: /home/spike/.cshrc
+    regexp: "set prompt=(.*)$"
+    line: '        set prompt="\n%{\033[0;32m%}%n@%m:%{\033[0;33m%}%~%{\033[1;30m%}>%{\033\[1;37m%} "'
+    owner: spike
+    group: spike
+    mode: "0644"
+  tags: cshrc
