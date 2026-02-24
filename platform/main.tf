@@ -48,6 +48,30 @@ module "hls" {
   privkeyctn  = var.privkeyctn
 }
 
+####################################################################################
+## D E V
+####################################################################################
+
+module "dev" {
+  source      = "./modules/dev"
+  area        = "south"
+  prefix      = "192.188.200" # VLAN 200
+  bridge      = var.bridge
+  octet       = "45"
+  vlan        = 200
+  memory      = 4096
+  nameserver  = var.nameserver
+  target_node = var.target_node
+  clone       = "freebsd-143-tmpl"
+  size        = 30
+  storage     = var.storage
+  cloudinit   = var.cloudinit
+  proxy       = var.proxy
+  userctn     = var.userctn
+  publkeyctn  = var.publkeyctn
+  privkeyctn  = var.privkeyctn
+}
+
 
 ####################################################################################
 ## L I S P 
