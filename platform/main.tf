@@ -114,6 +114,11 @@ output "hls_server_ip_address" {
   value       = module.hls
 }
 
+output "dev_server_ip_address" {
+  description = "Dev Server IP Address"
+  value       = module.dev
+}
+
 output "lisp_server_ip_address" {
   description = "Lisp Server IP Address"
   value       = module.lisp

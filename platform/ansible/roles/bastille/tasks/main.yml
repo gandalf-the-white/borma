@@ -38,6 +38,16 @@
     group: wheel
     mode: "0644"
 
+- name: Check if pf module is loaded
+  command: kldstat -n pf
+  register: pf_loaded
+  failed_when: false
+  changed_when: false
+
+- name: Load pf module if not loaded
+  command: kldload pf
+  when: pf_loaded.rc != 0
+
 - name: check pf.conf
   command: pfctl -vnf /etc/pf.conf
   register: pf_check

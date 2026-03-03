@@ -85,19 +85,19 @@ variable "lisp" {
     sockets = number
   }))
   default = [
-    # {
-    # name    = "frontend"
-    # octet   = "211"
-    # memory  = 2048
-    # cores   = 1
-    # sockets = 1
-    # }, {
-    # name    = "backend"
-    # octet   = "212"
-    # memory  = 2048
-    # cores   = 1
-    # sockets = 1
-    # },
+    {
+      name    = "frontend"
+      octet   = "211"
+      memory  = 2048
+      cores   = 1
+      sockets = 1
+      }, {
+      name    = "backend"
+      octet   = "212"
+      memory  = 2048
+      cores   = 1
+      sockets = 1
+    },
     {
       name    = "proxy1"
       octet   = "213"
@@ -110,7 +110,8 @@ variable "lisp" {
       memory  = 1024
       cores   = 1
       sockets = 1
-      }, {
+    },
+    {
       name    = "oracle"
       octet   = "215"
       memory  = 1024

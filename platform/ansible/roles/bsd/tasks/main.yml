@@ -30,14 +30,6 @@
     group: spike
     mode: "0644"
 
-- name: Copy init.el
-  ansible.builtin.template:
-    src: emacs.j2
-    dest: /usr/local/etc/rc.d/emacs
-    owner: root
-    group: wheel
-    mode: "0755"
-
 - name: Install bastille and more
   community.general.pkgng:
     name: "{{ item }}"
