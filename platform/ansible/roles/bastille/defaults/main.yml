@@ -7,7 +7,7 @@ packages:
   - emacs-nox
   - bash
 
-bastille_release: "14.3-RELEASE"
+bastille_release: "15.0-RELEASE"
 
 ext_if: "eth0"
 

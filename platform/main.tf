@@ -33,12 +33,13 @@ module "hls" {
   area        = "south"
   prefix      = "192.188.200" # VLAN 200
   bridge      = var.bridge
-  octet       = "55"
+  octet       = "54"
+  jail        = "55"
   vlan        = 200
   memory      = 4096
   nameserver  = var.nameserver
   target_node = var.target_node
-  clone       = "freebsd-143-tmpl"
+  clone       = "freebsd-150-tmpl"
   size        = 30
   storage     = var.storage
   cloudinit   = var.cloudinit

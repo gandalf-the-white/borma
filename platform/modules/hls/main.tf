@@ -84,6 +84,7 @@ resource "local_file" "inventory" {
 resource "local_file" "playbook" {
   content = templatefile("${path.module}/manifests/playbook-template.yaml",
     {
+      jail    = "${var.prefix}.${var.jail}/24"
       proxy   = var.proxy
       noproxy = "${var.prefix}.0/24"
   })

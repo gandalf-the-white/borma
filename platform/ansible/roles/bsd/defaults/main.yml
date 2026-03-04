@@ -5,6 +5,10 @@ packages:
   - bastille
   - sbcl
   - emacs-nox
+  - doas
+  - tree
+  - git-lite
+  - htop
 
 account: spike spiegel
 email: spike@gmail.com
