@@ -13,6 +13,8 @@ variable "cloudinit" { default = "local" }
 variable "target_node" { default = "proxmox" }
 variable "storage" { default = "local-lvm" }
 
+variable "prefix" { default = "192.188.200" }
+
 variable "masters" {
   type = list(object({
     name    = string

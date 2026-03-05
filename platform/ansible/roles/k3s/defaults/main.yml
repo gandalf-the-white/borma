@@ -5,4 +5,5 @@ packages:
   - vim
 
 k9s_version: v0.50.18
-k3s_version: v1.34.2+k3s1
+# k3s_version: v1.34.2+k3s1
+k3s_version: v1.35.1+k3s1

@@ -9,7 +9,7 @@ module "south" {
   workers     = var.workers
   nbmasters   = 1
   nbworkers   = 1
-  prefix      = "192.188.200" # VLAN 200
+  prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   vlan        = 200
   nameserver  = var.nameserver
@@ -31,7 +31,7 @@ module "south" {
 module "hls" {
   source      = "./modules/hls"
   area        = "south"
-  prefix      = "192.188.200" # VLAN 200
+  prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   octet       = "54"
   jail        = "55"
@@ -56,14 +56,15 @@ module "hls" {
 module "dev" {
   source      = "./modules/dev"
   area        = "south"
-  prefix      = "192.188.200" # VLAN 200
+  prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
-  octet       = "45"
+  octet       = "44"
+  jail        = "45"
   vlan        = 200
   memory      = 4096
   nameserver  = var.nameserver
   target_node = var.target_node
-  clone       = "freebsd-143-tmpl"
+  clone       = "freebsd-150-tmpl"
   size        = 30
   storage     = var.storage
   cloudinit   = var.cloudinit
@@ -84,7 +85,7 @@ module "lisp" {
   lisp        = var.lisp
   nbmasters   = 1
   nbworkers   = 1
-  prefix      = "192.188.200" # VLAN 200
+  prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   vlan        = 200
   nameserver  = var.nameserver

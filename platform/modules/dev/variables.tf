@@ -14,3 +14,4 @@ variable "nameserver" {}
 variable "cloudinit" {}
 variable "memory" {}
 variable "proxy" {}
+variable "jail" {}

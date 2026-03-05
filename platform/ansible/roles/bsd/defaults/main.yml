@@ -14,7 +14,7 @@ account: spike spiegel
 email: spike@gmail.com
 emacs_home: /home/spike/.emacs.d
 
-bastille_release: "14.3-RELEASE"
+bastille_release: "15.0-RELEASE"
 
 ext_if: "eth0"
 

@@ -55,11 +55,21 @@
 
 - name: Deploy pf.conf
   template:
-    src: pf.conf.j2
+    src: pf-ori.conf.j2
     dest: /etc/pf.conf
     owner: root
     group: wheel
     mode: "0644"
+
+- name: Check if pf module is loaded
+  command: kldstat -n pf
+  register: pf_loaded
+  failed_when: false
+  changed_when: false
+
+- name: Load pf module if not loaded
+  command: kldload pf
+  when: pf_loaded.rc != 0
 
 - name: check pf.conf
   command: pfctl -vnf /etc/pf.conf
@@ -77,7 +87,7 @@
     creates: "/usr/local/bastille/releases/{{ bastille_release }}"
 
 - name: Create jail
-  ansible.builtin.shell: "bastille create {{ item.name }} {{ bastille_release }}  {{ item.address }}"
+  ansible.builtin.shell: "bastille create {{ item.name }} {{ bastille_release }}  {{ jail }} {{ ext_if }}"
   with_items: "{{ jails }}"
   args:
     creates: "/usr/local/bastille/jails/{{ item.name }}"
@@ -85,6 +95,35 @@
 
 - name: reload
   command: "pfctl -f /etc/pf.conf"
+
+- name: Add proxy pkg
+  ansible.builtin.blockinfile:
+    path: /usr/local/etc/pkg.conf
+    block: |
+      PKG_ENV: {
+        HTTP_PROXY  : "{{ http_proxy }}"
+        HTTPS_PROXY : "{{ https_proxy }}"
+      }
+    append_newline: true
+    prepend_newline: true
+
+- name: Create directory pk
+  file:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc"
+    state: directory
+    recurse: yes
+  loop: "{{ jails }}"
+
+- name: Add proxy pkg
+  ansible.builtin.blockinfile:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/pkg.conf"
+    block: |
+      PKG_ENV: {
+        HTTP_PROXY  : "{{ http_proxy }}"
+        HTTPS_PROXY : "{{ https_proxy }}"
+      }
+    create: true
+  loop: "{{ jails }}"
 
 - name: Update jail
   ansible.builtin.shell: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update "
