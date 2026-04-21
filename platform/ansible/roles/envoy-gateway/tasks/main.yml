@@ -1,34 +1,40 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for ansible/roles/envoy-gateway
-- name: prerequisites
-  apt:
-    name: python3-pip
-    state: present
+# - name: prerequisites
+#   apt:
+#     name: python3-pip
+#     state: present
 
-- name: Replace pip per apt
-  apt:
-    name: "{{ pip_packages }}"
-    state: present
+# - name: Replace pip per apt
+#   apt:
+#     name: "{{ pip_packages }}"
+#     state: present
 
-- name: Install helm if not exists
-  unarchive:
-    src: "https://get.helm.sh/helm-v{{ addons_helm_version }}-linux-amd64.tar.gz"
-    dest: /usr/local/bin
-    extra_opts: "--strip-components=1"
-    owner: root
-    group: root
-    mode: 0755
-    remote_src: true
+# - name: Install helm if not exists
+#   unarchive:
+#     src: "https://get.helm.sh/helm-v{{ addons_helm_version }}-linux-amd64.tar.gz"
+#     dest: /usr/local/bin
+#     extra_opts: "--strip-components=1"
+#     owner: root
+#     group: root
+#     mode: 0755
+#     remote_src: true
+#   args:
+#     creates: /usr/local/bin/helm
+
+# - name: Install Helm Diff
+#   kubernetes.core.helm_plugin:
+#     plugin_path: "https://github.com/databus23/helm-diff"
+#     state: present
+#   tags:
+#     - helm
+
+- name: Install Helm
+  shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
   args:
     creates: /usr/local/bin/helm
-
-- name: Install Helm Diff
-  kubernetes.core.helm_plugin:
-    plugin_path: "https://github.com/databus23/helm-diff"
-    state: present
-  tags:
-    - helm
+  when: groups['bootstrap'] | length  == 1
 
 - name: Créer le namespace pour Envoy Gateway
   kubernetes.core.k8s:
@@ -36,6 +42,7 @@
     api_version: v1
     kind: Namespace
     state: present
+  when: groups['bootstrap'] | length  == 1
 
 - name: Install EG
   kubernetes.core.helm:
@@ -46,6 +53,8 @@
     release_namespace: "{{ name_space }}"
     release_state: present
     update_repo_cache: true
+  when:
+    groups['bootstrap'] | length  == 1
     # values:
     # service:
     # type: "LoadBalancer"
@@ -90,11 +99,13 @@
   loop:
     - gatewayclass.yaml
     - gateway.yaml
+  when: groups['bootstrap'] | length  == 1
 
 - name: Install gatewayclass
   kubernetes.core.k8s:
     state: present
     src: /tmp/gatewayclass.yaml
+  when: groups['bootstrap'] | length  == 1
 # - name: Install gateway
 #   kubernetes.core.k8s:
 #     namespace: default

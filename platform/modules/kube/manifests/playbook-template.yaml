@@ -15,6 +15,7 @@
 
   roles:
     - roles/k3s
+    - roles/cilium
 
 - name: install Istio and metallb
   hosts: bootstrap

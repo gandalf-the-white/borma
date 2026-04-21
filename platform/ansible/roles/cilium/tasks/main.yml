@@ -1,0 +1,55 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/cilium
+- name: Wait for kubeconfig
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 60
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Set kubeconfig env
+  set_fact:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Wait for Kubernetes API
+  command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: result
+  retries: 10
+  delay: 5
+  until: result.rc == 0
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Install Helm
+  shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Add Cilium repo
+  command: helm repo add cilium https://helm.cilium.io
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Update repos
+  command: helm repo update
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Install Cilium
+  command: >
+    helm install cilium cilium/cilium
+    --namespace {{ cilium_namespace }}
+    --set kubeProxyReplacement=true
+    --set k8sServiceHost={{ advertise_address }}
+    --set k8sServicePort=6443
+    --set ipam.mode=kubernetes
+    --set ipv4NativeRoutingCIDR={{ native_routing_address }}
+    --set enableIPv4=true
+    --set enableIPv4Masquerade=true
+    --set enableIPMasqAgent=false
+    --set routingMode=native
+    --set autoDirectNodeRoutes=true
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  when: inventory_hostname in groups['bootstrap']
