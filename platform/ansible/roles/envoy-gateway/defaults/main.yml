@@ -2,4 +2,4 @@
 ---
 # defaults file for ansible/roles/envoy-gateway
 envoy_gateway_version: "v1.6.3"
-namespace: "envoy-gateway-system"
+name_space: "envoy-gateway-system"

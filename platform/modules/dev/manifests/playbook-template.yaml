@@ -4,6 +4,10 @@
   become: true
 
   vars:
+    jail: "${jail}"
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
 
   environment:
     http_proxy: "${proxy}"
@@ -12,4 +16,3 @@
 
   roles:
     - roles/bsd
-    - quicklisp

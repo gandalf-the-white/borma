@@ -14,7 +14,7 @@ module "south" {
   vlan        = 200
   nameserver  = var.nameserver
   target_node = var.target_node
-  clone       = "ubuntu-2404-tmpl"
+  clone       = "debian-13-tmpl"
   size        = 30
   storage     = var.storage
   cloudinit   = var.cloudinit

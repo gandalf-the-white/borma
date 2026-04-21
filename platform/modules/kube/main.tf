@@ -4,7 +4,7 @@
 
 resource "proxmox_vm_qemu" "master_server" {
   count       = var.nbmasters
-  description = "Deploiement VM Ubuntu master on Proxmox"
+  description = "Deploiement VM Linux master on Proxmox"
   name        = "${var.area}-${var.masters[count.index].name}"
   target_node = var.target_node
   clone       = var.clone
@@ -71,7 +71,7 @@ resource "proxmox_vm_qemu" "master_server" {
 
 resource "proxmox_vm_qemu" "worker_server" {
   count       = var.nbworkers
-  description = "Deploiement VM Ubuntu worker on Proxmox"
+  description = "Deploiement VM Linux worker on Proxmox"
   name        = "${var.area}-${var.workers[count.index].name}"
   target_node = var.target_node
   clone       = var.clone
