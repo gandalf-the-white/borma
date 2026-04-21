@@ -5,13 +5,13 @@
 It's just a simple project including the script to build a /K3s/ cluster with
 + istio
 + k9s
++ Cilium
 + metallb
 
 * Platform
 ** Server
-[[file:images/PLATFORM.svg]]
+[[file:images/PLATFORM-2026-04-21-1554.svg]]
 * Video
 ** Script
 * Reference
 + [[https://dev.to/naveens16/envoy-sidecar-proxy-mastering-traffic-control-observability-and-autoscaling-in-kubernetes-kcg][Naveen]]
-+ 
