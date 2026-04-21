@@ -50,11 +50,19 @@
     dest: "config.yaml"
     flat: yes
 
-- name: Fetch k9s
-  get_url:
-    url: "https://github.com/derailed/k9s/releases/download/{{ k9s_version}}/k9s_linux_amd64.deb"
-    dest: /tmp/k9s_Linux_amd64.deb
+# - name: Fetch k9s
+#   get_url:
+#     url: "https://github.com/derailed/k9s/releases/download/{{ k9s_version}}/k9s_linux_amd64.deb"
+#     dest: /tmp/k9s_Linux_amd64.deb
 
 - name: dpkg install k9s
   apt:
     deb: "https://github.com/derailed/k9s/releases/download/{{ k9s_version}}/k9s_linux_amd64.deb"
+# - name: Fetch Pixie
+#   get_url:
+#     url: "https://storage.googleapis.com/pixie-dev-public/cli/latest/pixie-px.x86_64.deb"
+#     dest: /tmp/pixie-px.x86_64.deb
+
+# - name: dpkg install pixie
+#   apt:
+#     deb: "https://storage.googleapis.com/pixie-dev-public/cli/latest/pixie-px.x86_64.deb"
