@@ -1,0 +1,33 @@
+replicas: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+adminUser: admin
+adminPassword: "ChangeMeNow!"
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-gateway
+        isDefault: true
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo:3100
+        jsonData:
+          serviceMap:
+            datasourceUid: prometheus
+      - name: Parca
+        type: parca
+        access: proxy
+        url: http://parca:7070

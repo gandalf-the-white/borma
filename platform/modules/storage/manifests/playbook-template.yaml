@@ -1,0 +1,19 @@
+---
+- name: install Storage
+  hosts: all
+  become: true
+
+  vars:
+    hostname: "${hostname}"
+    prefix: "${prefix}"
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
+
+  environment:
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
+
+  roles:
+    - roles/storage

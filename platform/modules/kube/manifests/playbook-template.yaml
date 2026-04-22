@@ -29,6 +29,7 @@
     no_proxy: "${noproxy}"
 
   roles:
+    - roles/hoover
     - roles/metallb
     # - roles/storage
     # - roles/istio

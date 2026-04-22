@@ -50,6 +50,32 @@ module "hls" {
 }
 
 ####################################################################################
+## N F S  S T O R A G E
+####################################################################################
+
+module "storage" {
+  source      = "./modules/storage"
+  name        = "nfs-server"
+  area        = "south"
+  prefix      = var.prefix # VLAN 200
+  bridge      = var.bridge
+  octet       = "64"
+  jail        = "65"
+  vlan        = 200
+  memory      = 4096
+  nameserver  = var.nameserver
+  target_node = var.target_node
+  clone       = "freebsd-150-tmpl"
+  size        = 30
+  storage     = var.storage
+  cloudinit   = var.cloudinit
+  proxy       = var.proxy
+  userctn     = var.userctn
+  publkeyctn  = var.publkeyctn
+  privkeyctn  = var.privkeyctn
+}
+
+####################################################################################
 ## D E V
 ####################################################################################
 
@@ -124,4 +150,9 @@ output "dev_server_ip_address" {
 output "lisp_server_ip_address" {
   description = "Lisp Server IP Address"
   value       = module.lisp
+}
+
+output "storage_server_ip_address" {
+  description = "Storage Server IP Address"
+  value       = module.storage
 }

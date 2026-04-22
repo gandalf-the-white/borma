@@ -1,0 +1,23 @@
+ext_if="{{ bastille_interface }}"
+nfs_net = "{{ prefix }}.0/24"
+
+set skip on lo
+
+block in all
+pass out all keep state
+
+# SSH
+pass in on $ext_if proto tcp from $nfs_net to ($ext_if) port 22 keep state
+
+# NFSv4
+pass in on $ext_if proto tcp from $nfs_net to ($ext_if) port 2049 keep state
+
+# rpcbind (nécessaire)
+# pass in on $ext_if proto tcp from $nfs_net to ($ext_if) port 111 keep state
+# pass in on $ext_if proto udp from $nfs_net to ($ext_if) port 111 keep state
+
+{% for jail in jails %}
+{% for p in jail.ports %}
+pass in on $ext_if proto {{ p.proto }} from $nfs_net to ($ext_if) port {{ p.port }} keep state
+{% endfor %}
+{% endfor %}

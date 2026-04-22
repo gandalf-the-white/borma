@@ -1,0 +1,18 @@
+parca:
+  replicas: 1
+
+service:
+  type: ClusterIP
+  port: 7070
+
+persistence:
+  enabled: true
+  size: 20Gi
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi

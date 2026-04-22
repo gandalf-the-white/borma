@@ -1,0 +1,27 @@
+tempo:
+  reportingEnabled: false
+  metricsGenerator:
+    enabled: true
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+
+persistence:
+  enabled: true
+  size: 20Gi
+
+service:
+  type: ClusterIP
+
+ingester:
+  replicas: 1
+distributor:
+  replicas: 1
+compactor:
+  replicas: 1
+querier:
+  replicas: 1
+queryFrontend:
+  replicas: 1

@@ -1,0 +1,74 @@
+loki:
+  auth_enabled: false
+
+  commonConfig:
+    replication_factor: 1
+
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+  storage:
+    type: filesystem
+
+  storage_config:
+    filesystem:
+      directory: /var/loki/chunks
+
+  compactor:
+    working_directory: /var/loki/compactor
+    compaction_interval: 10m
+    retention_enabled: true
+    delete_request_store: filesystem
+
+  limits_config:
+    retention_period: 168h # 7 jours
+
+deploymentMode: SingleBinary
+
+singleBinary:
+  replicas: 1
+
+  persistence:
+    enabled: true
+    storageClass: local-path
+    accessModes:
+      - ReadWriteOnce
+    size: 30Gi
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+# Obligatoire pour SingleBinary : désactiver les cibles distributed
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+# Optionnel mais souvent préférable en petit cluster
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+gateway:
+  enabled: true
+
+lokiCanary:
+  enabled: false
+
+test:
+  enabled: false
