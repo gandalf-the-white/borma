@@ -78,14 +78,33 @@
   ansible.builtin.shell: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update "
   with_items: "{{ jails }}"
 
+######################################
+# DAEMON CONFIGURATION
+######################################
+
+- name: Enable nfs at boot
+  community.general.sysrc:
+    name: nfs_server_enable
+    value: "YES"
+
+- name: Enable mount at boot
+  community.general.sysrc:
+    name: mountd_enable
+    value: "YES"
+
+- name: Enable rpcbind at boot
+  community.general.sysrc:
+    name: rpcbind_enable
+    value: "YES"
+
 - name: Add packages
   ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
-  loop: "{{ jails | subelements('packages') }}"
+  loop: "{{ jails | subelements('packages', skip_missing=True) }}"
 
 - name: Enable packages in jail
   ansible.builtin.shell: >
     bastille sysrc {{ item.0.name }} {{item.1}}_enable=YES
-  loop: "{{ jails | subelements('services') }}"
+  loop: "{{ jails | subelements('daemons', skip_missing=True) }}"
 
 - name: Deploy pf.conf
   template:
@@ -118,7 +137,7 @@
   loop: "{{ nats_jail.services }}"
 
 ######################################
-# NFS CONFIGURATION
+# NFS CONFIGURATION PERMISSIONS
 ######################################
 
 - name: Get nfs jail
@@ -196,14 +215,24 @@
   loop: "{{ jails | subelements('new_groups', skip_missing=True) }}"
   when: item.1.name not in (item.0.accounts | map(attribute='name') | list)
 
+- name: Create shared directories in jail rootfs
+  file:
+    path: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/nfs/kube"
+    owner: nobody
+    group: nobody
+    mode: "1777"
+    state: directory
+  when: nfs_jail is defined
+
 - name: Deploy exports
   template:
     src: exports.j2
-    dest: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/etc/exports"
+    # dest: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/etc/exports"
+    dest: "/etc/exports"
     owner: root
     group: wheel
     mode: "0644"
-  when: nfs_jail is defined
+  # when: nfs_jail is defined
 
 - name: Restart services in jails
   ansible.builtin.command: >
@@ -248,3 +277,15 @@
     create: true
   loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
   tags: prompt
+
+######################################
+# RESTART DAEMONS
+######################################
+
+- name: Ensure service are running
+  ansible.builtin.shell: >
+    service {{ item }} restart
+  loop:
+    - rpcbind
+    - nfsd
+    - mountd

@@ -1,1 +1,4 @@
-/nfs/ -alldirs -network {{ subnet }} -mask 255.255.255.0
+/usr/local/bastille/jails/nfs-server/root/nfs/spike -maproot=spike -network {{ subnet }} -mask 255.255.255.0
+/usr/local/bastille/jails/nfs-server/root/nfs/faye  -maproot=faye  -network {{ subnet }} -mask 255.255.255.0
+/usr/local/bastille/jails/nfs-server/root/nfs/crew  -network {{ subnet }} -mask 255.255.255.0
+/usr/local/bastille/jails/nfs-server/root/nfs/kube  -mapall=nobody -network {{ subnet }} -mask 255.255.255.0

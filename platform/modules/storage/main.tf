@@ -93,16 +93,16 @@ resource "local_file" "playbook" {
   file_permission = "0644"
 }
 
-resource "null_resource" "play_ansible" {
-  provisioner "local-exec" {
-    command = "ansible-playbook -i ansible/inventory-storage.yaml ansible/playbook-storage.yaml"
-  }
-  depends_on = [
-    proxmox_vm_qemu.server,
-    local_file.inventory,
-    local_file.playbook
-  ]
-}
+# resource "null_resource" "play_ansible" {
+#   provisioner "local-exec" {
+#     command = "ansible-playbook -i ansible/inventory-storage.yaml ansible/playbook-storage.yaml"
+#   }
+#   depends_on = [
+#     proxmox_vm_qemu.server,
+#     local_file.inventory,
+#     local_file.playbook
+#   ]
+# }
 
 ####################################################################################
 ##  OUTPUT

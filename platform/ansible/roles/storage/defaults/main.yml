@@ -7,37 +7,15 @@ packages:
 bastille_interface: "eth0"
 bastille_release: "15.0-RELEASE"
 
-# accounts:
-#   - name: spike
-#     uid: 1010
-#     gid: 1010
-#   - name: faye
-#     uid: 1020
-#     gid: 1020
-
-# new_groups:
-#   - name: crew
-#     gid: 1030
-#   - name: spike
-#     gid: 1010
-#   - name: faye
-#     gid: 1020
-
 jails:
   - name: nfs-server
     octet: "210"
     packages:
       - htop
       - tree
-    services:
-      - nfsd
-      - mountd
-      - rpcbind
-    ports:
-      - port: 2049
-        proto: tcp
-      - port: 111
-        proto: udp
+    daemons: []
+    services: []
+    ports: []
     accounts:
       - name: spike
         uid: 1010
@@ -58,6 +36,8 @@ jails:
     packages:
       - htop
       - nats-server
+    daemons:
+      - nats
     services:
       - nats
     ports:
