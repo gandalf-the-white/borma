@@ -6,6 +6,7 @@
   vars:
     hostname: "${hostname}"
     prefix: "${prefix}"
+    subnet: "${prefix}.0"
     http_proxy: "${proxy}"
     https_proxy: "${proxy}"
     no_proxy: "${noproxy}"

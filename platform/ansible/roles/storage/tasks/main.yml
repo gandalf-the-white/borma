@@ -103,6 +103,103 @@
     mode: "0644"
 
 ######################################
+# NFS CONFIGURATION
+######################################
+
+- name: Get nfs jail
+  set_fact:
+    nfs_jail: "{{ jails | selectattr('name', 'equalto', 'nfs') | first }}"
+
+- name: Create NFS directory
+  file:
+    path: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/nfs"
+    owner: 0
+    group: 0
+    mode: "0755"
+    state: directory
+  when: nfs_jail is defined
+
+- name: Check if group exists
+  command: >
+    bastille cmd {{ nfs_jail.name }} pw groupshow {{ item.name }}
+  register: group_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ new_groups }}"
+  when: nfs_jail is defined
+
+- name: Add groups from accounts in nfs jail
+  command: >
+    bastille cmd {{ nfs_jail.name }} pw groupadd -n {{ item.item.name }} -g {{ item.item.gid }}
+  loop: "{{ group_check.results }}"
+  when:
+    - nfs_jail is defined
+    - item.rc != 0
+
+- name: Check if user exists
+  command: >
+    bastille cmd {{ nfs_jail.name }} pw usershow {{ item.name }}
+  register: user_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ accounts }}"
+  when: nfs_jail is defined
+
+- name: Add users in nfs jail
+  command: >
+    bastille cmd {{ nfs_jail.name }} pw useradd -n {{ item.item.name }}
+    -u {{ item.item.uid }}
+    -g {{ item.item.gid }}
+    -G crew,wheel
+    -c "{{ item.item.name }}"
+    -m
+    -s /bin/tcsh
+  loop: "{{ user_check.results }}"
+  when:
+    - nfs_jail is defined
+    - item.rc != 0
+
+- name: Create home directories
+  file:
+    path: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/nfs/{{ item.name }}"
+    owner: "{{ item.uid }}"
+    group: "{{ item.gid }}"
+    mode: "0700"
+    state: directory
+  loop: "{{ accounts }}"
+  when: nfs_jail is defined
+
+- name: Get crew info
+  set_fact:
+    crew_id: "{{ new_groups | selectattr('name', 'equalto', 'crew') | first }}"
+
+- name: Create common directory
+  file:
+    path: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/nfs/crew"
+    owner: root
+    group: "{{ crew_id.gid }}"
+    mode: "0770"
+    state: directory
+  when:
+    - nfs_jail is defined
+    - crew_id is defined
+
+- name: Deploy exports
+  template:
+    src: exports.j2
+    dest: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/etc/exports"
+    owner: root
+    group: wheel
+    mode: "0644"
+  when: nfs_jail is defined
+
+- name: Restart services in nfs jail
+  ansible.builtin.command: >
+    bastille service {{ nfs_jail.name }} {{ item }} restart
+  loop: "{{ nfs_jail.services }}"
+  when: nfs_jail is defined
+
+######################################
 # PF CONFIGURATION
 ######################################
 
@@ -125,3 +222,16 @@
   command: pfctl -f /etc/pf.conf
   when: pf_check.rc == 0
   notify: reload pf
+
+######################################
+# PF CONFIGURATION
+######################################
+
+- name: Configure tcsh prompt
+  ansible.builtin.lineinfile:
+    path: "/usr/local/bastille/jails/{{ nfs_jail.name }}/root/home/{{ item.name }}/.cshrc"
+    regexp: '^\s*set\s+prompt\s*=.*'
+    line: '	set prompt="%{\033[0m%}\n%{\033[0;32m%}%n@%m%{\033[0m%}:%{\033[0;33m%}%~%{\033[0m%} %# "'
+    create: true
+  loop: "{{ accounts }}"
+  when: nfs_jail is defined

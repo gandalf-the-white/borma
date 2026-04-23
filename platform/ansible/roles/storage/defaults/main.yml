@@ -14,7 +14,7 @@ jails:
       - htop
       - tree
     services:
-      - nfs_server
+      - nfsd
       - mountd
       - rpcbind
     ports:
@@ -32,3 +32,19 @@ jails:
     ports:
       - port: 953
         proto: tcp
+
+accounts:
+  - name: spike
+    uid: 1010
+    gid: 1010
+  - name: faye
+    uid: 1020
+    gid: 1020
+
+new_groups:
+  - name: crew
+    gid: 1030
+  - name: spike
+    gid: 1010
+  - name: faye
+    gid: 1020
