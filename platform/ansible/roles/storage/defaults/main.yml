@@ -7,8 +7,24 @@ packages:
 bastille_interface: "eth0"
 bastille_release: "15.0-RELEASE"
 
+# accounts:
+#   - name: spike
+#     uid: 1010
+#     gid: 1010
+#   - name: faye
+#     uid: 1020
+#     gid: 1020
+
+# new_groups:
+#   - name: crew
+#     gid: 1030
+#   - name: spike
+#     gid: 1010
+#   - name: faye
+#     gid: 1020
+
 jails:
-  - name: nfs
+  - name: nfs-server
     octet: "210"
     packages:
       - htop
@@ -22,29 +38,42 @@ jails:
         proto: tcp
       - port: 111
         proto: udp
-  - name: dns
+    accounts:
+      - name: spike
+        uid: 1010
+        gid: 1010
+      - name: faye
+        uid: 1020
+        gid: 1020
+    new_groups:
+      - name: crew
+        gid: 1030
+      - name: spike
+        gid: 1010
+      - name: faye
+        gid: 1020
+
+  - name: nats-server
     octet: "211"
     packages:
       - htop
-      - bind920
+      - nats-server
     services:
-      - named
+      - nats
     ports:
-      - port: 953
+      - port: 4222
         proto: tcp
-
-accounts:
-  - name: spike
-    uid: 1010
-    gid: 1010
-  - name: faye
-    uid: 1020
-    gid: 1020
-
-new_groups:
-  - name: crew
-    gid: 1030
-  - name: spike
-    gid: 1010
-  - name: faye
-    gid: 1020
+    accounts:
+      - name: spike
+        uid: 1010
+        gid: 1010
+      - name: faye
+        uid: 1020
+        gid: 1020
+    new_groups:
+      - name: crew
+        gid: 1030
+      - name: spike
+        gid: 1010
+      - name: faye
+        gid: 1020

@@ -17,7 +17,15 @@ pass in on $ext_if proto tcp from $nfs_net to ($ext_if) port 2049 keep state
 # pass in on $ext_if proto udp from $nfs_net to ($ext_if) port 111 keep state
 
 {% for jail in jails %}
+# {{ jail.name }} Configuration
 {% for p in jail.ports %}
 pass in on $ext_if proto {{ p.proto }} from $nfs_net to ($ext_if) port {{ p.port }} keep state
+{% endfor %}
+{% endfor %}
+
+{% for jail in jails %}
+# Block {{ jail.name }} Configuration
+{% for p in jail.ports %}
+block in on $ext_if proto {{ p.proto }} to ($ext_if) port {{ p.port }}
 {% endfor %}
 {% endfor %}

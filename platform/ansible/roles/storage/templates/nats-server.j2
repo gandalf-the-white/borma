@@ -1,0 +1,19 @@
+port: 4222
+
+server_name: "nats-prod"
+
+# Logs
+log_file: "/var/log/nats.log"
+
+# Authentification basique
+authorization {
+  users = [
+    { user: "client", password: "motdepassefort" }
+  ]
+}
+
+# Monitoring (optionnel)
+http: 127.0.0.1:8222
+
+# Limiter aux IP locales (important)
+listen: 127.0.0.1:4222
