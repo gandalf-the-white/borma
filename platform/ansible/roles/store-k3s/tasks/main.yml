@@ -1,0 +1,93 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/store-k3s
+- name: Wait for kubeconfig
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 60
+  tags: store
+
+- name: Set kubeconfig env
+  set_fact:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+  tags: store
+
+- name: Wait for Kubernetes API
+  command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: result
+  retries: 10
+  delay: 5
+  until: result.rc == 0
+  tags: store
+
+- name: Ajouter le repo Helm nfs-subdir-external-provisioner
+  kubernetes.core.helm_repository:
+    name: nfs-subdir-external-provisioner
+    repo_url: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+
+- name: Installer / mettre à jour le provisioner NFS
+  kubernetes.core.helm:
+    name: "{{ release_name }}"
+    chart_ref: nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
+    release_namespace: "{{ store_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    values:
+      nfs:
+        server: "{{ nfs_server }}"
+        path: "{{ nfs_path }}"
+      storageClass:
+        name: "{{ storage_class_name }}"
+        defaultClass: false
+        reclaimPolicy: Retain
+        archiveOnDelete: true
+        accessModes: ReadWriteMany
+# - name: Créer un PVC de test
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: PersistentVolumeClaim
+#       metadata:
+#         name: test-nfs
+#         namespace: default
+#       spec:
+#         storageClassName: "{{ storage_class_name }}"
+#         accessModes:
+#           - ReadWriteMany
+#         resources:
+#           requests:
+#             storage: 1Gi
+#   tags: store
+
+# - name: Créer un Pod de test NFS
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: Pod
+#       metadata:
+#         name: test-nfs
+#         namespace: default
+#       spec:
+#         restartPolicy: Never
+#         containers:
+#           - name: busybox
+#             image: busybox:latest
+#             command:
+#               - sh
+#               - -c
+#               - |
+#                 echo "NFS OK depuis Kubernetes" > /data/test.txt
+#                 cat /data/test.txt
+#                 sleep 3600
+#             volumeMounts:
+#               - name: data
+#                 mountPath: /data
+#         volumes:
+#           - name: data
+#             persistentVolumeClaim:
+#               claimName: test-nfs
+#   tags: store

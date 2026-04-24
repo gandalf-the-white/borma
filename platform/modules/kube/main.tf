@@ -163,6 +163,7 @@ resource "local_file" "playbook" {
       kubeadm_worker_group_name = "worker_nodes"
       prefix                    = var.prefix
       area                      = var.area
+      storage                   = "${var.prefix}.${var.store}"
   })
   filename        = "./ansible/playbook-k3s.yaml"
   file_permission = "0644"

@@ -1,0 +1,9 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/store-k3s
+
+store_namespace: storage
+release_name: nfs-storage
+nfs_server: "{{ storage }}"
+nfs_path: "/srv/nfs/kube"
+storage_class_name: "nfs-client"

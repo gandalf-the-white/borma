@@ -12,6 +12,7 @@ variable "target_node" {}
 variable "size" {}
 variable "clone" {}
 variable "storage" {}
+variable "store" {}
 variable "bridge" {}
 variable "nameserver" {}
 variable "cloudinit" {}

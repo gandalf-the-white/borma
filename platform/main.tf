@@ -17,6 +17,7 @@ module "south" {
   clone       = "debian-13-tmpl"
   size        = 30
   storage     = var.storage
+  store       = "64"
   cloudinit   = var.cloudinit
   proxy       = var.proxy
   userctn     = var.userctn

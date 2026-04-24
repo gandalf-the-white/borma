@@ -23,15 +23,16 @@
   vars:
     prefix: "${prefix}"
     area: "${area}"
+    storage: "${storage}"
   environment:
     http_proxy: "${proxy}"
     https_proxy: "${proxy}"
     no_proxy: "${noproxy}"
 
   roles:
-    - roles/hoover
     - roles/metallb
-    # - roles/storage
+    - roles/store-k3s
+    # - roles/hoover
     # - roles/istio
     - roles/envoy-gateway
     # - roles/kubecost
