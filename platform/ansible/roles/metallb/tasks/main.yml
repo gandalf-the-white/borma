@@ -51,6 +51,10 @@
     chart_ref: metallb/metallb
     release_namespace: metallb-system
     create_namespace: true
+    values:
+      speaker:
+        frr:
+          enabled: false
   when: groups['bootstrap'] | length  == 1
 
 - name: Wait until install done
@@ -64,26 +68,34 @@
     wait_timeout: 150
   when: groups['bootstrap'] | length  == 1
 
+- name: Wait for MetalLB CRDs
+  command: kubectl get crd ipaddresspools.metallb.io l2advertisements.metallb.io
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: metallb_crds
+  retries: 20
+  delay: 5
+  until: metallb_crds.rc == 0
+  changed_when: false
+
 - name: Apply the configuration
   kubernetes.core.k8s:
-    namespace: metallb-ingress
+    namespace: metallb-system
     state: present
     definition:
       apiVersion: metallb.io/v1beta1
       kind: IPAddressPool
       metadata:
-        name: default
+        name: ingress-pool
         namespace: metallb-system
       spec:
         addresses:
-          - "{{ prefix }}.229/32"
-          - "{{ prefix }}.230/32"
-          - "{{ prefix }}.231/32"
+          - "{{ metallb_pool_start }}-{{ metallb_pool_end }}"
   when: groups['bootstrap'] | length  == 1
 
 - name: Apply the advertisement
   kubernetes.core.k8s:
-    namespace: metallb-ingress
+    namespace: metallb-system
     state: present
     definition:
       apiVersion: metallb.io/v1beta1

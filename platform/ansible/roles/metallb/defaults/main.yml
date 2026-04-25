@@ -5,3 +5,6 @@ pip_packages:
   - python3-kubernetes
   - python3-yaml
   - python3-jsonpath-rw
+
+metallb_pool_start: "{{ prefix }}.229"
+metallb_pool_end: "{{ prefix }}.234"

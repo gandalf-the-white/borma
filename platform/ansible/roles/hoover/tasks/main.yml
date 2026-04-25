@@ -80,6 +80,7 @@
     kubeconfig: "{{ kubeconfig }}"
     name: loki
     chart_ref: grafana/loki
+    chart_version: "6.42.0"
     release_namespace: "{{ monitoring_namespace }}"
     values: "{{ lookup('template', 'templates/values-loki.yml.j2') | from_yaml }}"
     wait: true
