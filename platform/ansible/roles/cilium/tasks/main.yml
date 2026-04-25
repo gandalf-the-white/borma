@@ -52,14 +52,11 @@
     chart_ref: cilium/cilium
     release_namespace: kube-system
     create_namespace: false
-    # reuse_values: true
     reset_values: true
     values: "{{ lookup('template', 'templates/values-cilium-metrics.yml.j2') | from_yaml }}"
     wait: true
     timeout: 10m
-  when:
-    - inventory_hostname in groups['bootstrap']
-    # - servicemonitor_crd.rc == 0
+  when: inventory_hostname in groups['bootstrap']
 
 - name: Verify Cilium pods
   command: kubectl -n kube-system rollout status ds/cilium --timeout=180s
@@ -67,6 +64,3 @@
     KUBECONFIG: "{{ kubeconfig }}"
   changed_when: false
   when: inventory_hostname in groups['bootstrap']
-# - name: Debug rendered Cilium values
-#   debug:
-#     msg: "{{ lookup('template', 'templates/values-cilium-metrics.yml.j2') }}"
