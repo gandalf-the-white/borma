@@ -1,0 +1,51 @@
+grafana:
+  enabled: true
+  persistence:
+    enabled: true
+    storageClassName: "{{ storage_class }}"
+    size: "{{ grafana_storage_size }}"
+
+  adminPassword: "ChangeMeNow!"
+
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.{{ monitoring_namespace }}.svc.cluster.local
+      isDefault: false
+
+  initChownData:
+    enabled: false
+  securityContext:
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+  podSecurityContext:
+    fsGroup: 472
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: "{{ storage_class }}"
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: "{{ prometheus_storage_size }}"
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: "{{ storage_class }}"
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: "{{ alertmanager_storage_size }}"

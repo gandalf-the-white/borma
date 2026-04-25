@@ -1,56 +1,106 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for ansible/roles/hoover
-- name: prerequisites
-  apt:
-    name: python3-pip
+- name: Wait for kubeconfig
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 60
+  tags:
+    - step1
+
+- name: Set kubeconfig env
+  set_fact:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+  tags:
+    - step1
+
+- name: Wait for Kubernetes API
+  command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: result
+  retries: 10
+  delay: 5
+  until: result.rc == 0
+  tags:
+    - step1
+
+- name: Verify cluster access
+  command: kubectl get nodes
+  changed_when: false
+  tags:
+    - step1
+
+- name: Verify NFS StorageClass exists
+  command: kubectl get storageclass {{ storage_class }}
+  changed_when: false
+  tags:
+    - step1
+
+- name: Create monitoring namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ monitoring_namespace }}"
     state: present
+  tags:
+    - step1
 
-- name: Replace pip per apt
-  apt:
-    name: "{{ pip_packages }}"
-    state: present
-
-# - name: Check eBPF support
-#   command: bpftool prog list
-#   register: ebpf_check
-#   failed_when: ebpf_check.rc != 0
-
-- name: Install helm if not exists
-  unarchive:
-    src: "https://get.helm.sh/helm-v{{ addons_helm_version }}-linux-amd64.tar.gz"
-    dest: /usr/local/bin
-    extra_opts: "--strip-components=1"
-    owner: root
-    group: root
-    mode: 0755
-    remote_src: true
-  args:
-    creates: /usr/local/bin/helm
-
-- name: Install Helm Diff
-  kubernetes.core.helm_plugin:
-    plugin_path: "https://github.com/databus23/helm-diff"
-    state: present
-
-- name: Add Helm repo
+- name: Add Helm repos
   kubernetes.core.helm_repository:
-    name: "{{item.name}}"
-    repo_url: "{{item.url}}"
-  loop: "{{ helm_repos }}"
-  tags: hoover
-
-- name: Deploy releases (Loki Tempo Grafana Parca)
-  kubernetes.core.helm:
     name: "{{ item.name }}"
-    chart_ref: "{{ item.chart_ref }}"
-    chart_version: "{{ item.chart_version }}"
-    release_namespace: "{{ obs_namespace }}"
+    repo_url: "{{ item.url }}"
+  loop: "{{ repos }}"
+  tags:
+    - step1
+
+- name: Deploy kube-prometheus-stack
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: kube-prometheus-stack
+    chart_ref: prometheus-community/kube-prometheus-stack
+    release_namespace: "{{ monitoring_namespace }}"
     create_namespace: true
-    kubeconfig: "{{ kubeconfig_path }}"
     update_repo_cache: true
+    values: "{{ lookup('template', 'templates/values-prometheus.yml.j2') | from_yaml }}"
     wait: true
-    timeout: 900s
-    values: "{{ lookup('file', 'files/' ~ item.values_file) | from_yaml }}"
-  loop: "{{ helm_releases }}"
-  tags: hoover
+    timeout: 10m
+  tags:
+    - step1
+
+- name: Verify Prometheus stack pods
+  command: kubectl -n {{ monitoring_namespace }} get pods
+  changed_when: false
+  tags:
+    - step1
+
+- name: Deploy Loki
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: loki
+    chart_ref: grafana/loki
+    release_namespace: "{{ monitoring_namespace }}"
+    values: "{{ lookup('template', 'templates/values-loki.yml.j2') | from_yaml }}"
+    wait: true
+    timeout: 10m
+  tags:
+    - step1
+
+- name: Deploy Alloy
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: alloy
+    chart_ref: grafana/alloy
+    release_namespace: "{{ monitoring_namespace }}"
+    values: "{{ lookup('template', 'templates/values-alloy.yml.j2') | from_yaml }}"
+    wait: true
+    timeout: 10m
+  tags:
+    - step1
+
+- name: Final verification
+  command: kubectl -n {{ monitoring_namespace }} get pods,pvc,svc
+  changed_when: false
+  tags:
+    - step1

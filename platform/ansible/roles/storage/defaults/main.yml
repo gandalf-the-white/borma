@@ -3,6 +3,7 @@
 # defaults file for ansible/roles/storage
 packages:
   - bastille
+  - tree
 
 bastille_interface: "eth0"
 bastille_release: "15.0-RELEASE"
@@ -82,5 +83,5 @@ nfs_exports:
   - name: kube
     mode: "1777"
     owner: 65534
-    group: 65534
-    export_opts: "-mapall=nobody -network 192.188.200.0 -mask 255.255.255.0"
+    group: 65533
+    export_opts: "-mapall=nobody -alldirs -network 192.188.200.0 -mask 255.255.255.0"

@@ -31,8 +31,8 @@
 
   roles:
     - roles/metallb
+    - roles/envoy-gateway
     - roles/store-k3s
     # - roles/hoover
     # - roles/istio
-    - roles/envoy-gateway
     # - roles/kubecost

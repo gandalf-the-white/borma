@@ -1,33 +1,51 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for ansible/roles/hoover
-addons_helm_version: 3.19.4
+# addons_helm_version: 3.19.4
 
-kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+# kubeconfig_path: /etc/rancher/k3s/k3s.yaml
 
-obs_namespace: obervability
+# obs_namespace: obervability
 
-helm_repos:
+# helm_repos:
+#   - name: grafana
+#     url: "https://grafana.github.io/helm-charts"
+
+#   - name: parca
+#     url: "https://parca-dev.github.io/helm-charts"
+
+# helm_releases:
+#   - name: loki
+#     chart_ref: grafana/loki
+#     chart_version: "6.55.0"
+#     values_file: "loki-values.yml"
+# - name: tempo
+#   chart_ref: grafana/tempo
+#   chart_version: "1.24.4"
+#   values_file: "tempo-values.yml"
+# - name: grafana
+#   chart_ref: grafana/grafana
+#   chart_version: "10.5.15"
+#   values_file: "grafana-values.yml"
+# - name: parca
+#   chart_ref: parca/parca
+#   chart_version: "4.19.0"
+#   values_file: "parca-values.yml"
+
+monitoring_namespace: monitoring
+storage_class: nfs-client
+kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+# Storage
+grafana_storage_size: 1Gi #10Gi
+prometheus_storage_size: 1Gi #50Gi
+alertmanager_storage_size: 1Gi #5Gi
+loki_storage_size: 1Gi #50Gi
+
+repos:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
   - name: grafana
-    url: "https://grafana.github.io/helm-charts"
-
-  - name: parca
-    url: "https://parca-dev.github.io/helm-charts"
-
-helm_releases:
-  - name: loki
-    chart_ref: grafana/loki
-    chart_version: "6.55.0"
-    values_file: "loki-values.yml"
-  # - name: tempo
-  #   chart_ref: grafana/tempo
-  #   chart_version: "1.24.4"
-  #   values_file: "tempo-values.yml"
-  # - name: grafana
-  #   chart_ref: grafana/grafana
-  #   chart_version: "10.5.15"
-  #   values_file: "grafana-values.yml"
-  # - name: parca
-  #   chart_ref: parca/parca
-  #   chart_version: "4.19.0"
-  #   values_file: "parca-values.yml"
+    url: https://grafana.github.io/helm-charts
+  # - name: cilium
+  #   url: https://helm.cilium.io/

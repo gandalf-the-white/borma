@@ -38,6 +38,11 @@
       nfs:
         server: "{{ nfs_server }}"
         path: "{{ nfs_path }}"
+        mountOptions:
+          - vers=3
+          - proto=tcp
+          - hard
+          - nolock
       storageClass:
         name: "{{ storage_class_name }}"
         defaultClass: false
