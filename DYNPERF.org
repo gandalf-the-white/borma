@@ -1,0 +1,14 @@
+#+title: Dynperf
+
+* Introduction
+** Abstract
+This platform aims to automate the creation of a cluster by integrating the most suitable tools for continuously monitoring its operation. Another complementary objective is to achieve maximum vendor independence in order to anticipate potential vendor changes and maintain end-to-end control over the architecture.
+I chose Proxmox for its simplicity in designing a home lab and for securing access to the various OpenSense virtual machines. I also used WireGuard to manage communication.
+
+* Timeline
+** Introduction
+As this is an automated process, the setup is based directly on Terraform for infrastructure as code (IaC) and Ansible for installing each component.
+** Platform
+[[images/PLATFORM-2026-04-21-1554.svg]]
+** Step by Step
+[[images/TIMELINE-2026-04-27-0831.png]]
