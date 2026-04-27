@@ -13,7 +13,9 @@ tempo:
     otlp:
       protocols:
         grpc:
+          endpoint: 0.0.0.0:4317
         http:
+          endpoint: 0.0.0.0:4318
 
 singleBinary:
   replicas: 1
@@ -21,7 +23,7 @@ singleBinary:
   persistence:
     enabled: true
     storageClass: "{{ storage_class }}"
-    size: 20Gi
+    size: 1Gi
 
 service:
   type: ClusterIP

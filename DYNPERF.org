@@ -73,3 +73,107 @@ In order to use FreeBSD as a storage server, it is necessary to understand certa
 /srv/nfs/kube -mapall=nobody -alldirs -network 192.188.200.0 -mask 255.255.255.0
 #+end_src
 Just focus on the last line (/srv/nfs/kube).
+
+* Check
+** Global
+#+begin_src shell
+$ kubectl -n monitoring get pods
+NAME                                                        READY   STATUS    RESTARTS   AGE
+alertmanager-kube-prometheus-stack-alertmanager-0           2/2     Running   0          65m
+alloy-gmg79                                                 2/2     Running   0          63m
+alloy-vtj2r                                                 2/2     Running   0          63m
+kube-prometheus-stack-grafana-c7fb4fb69-794j9               3/3     Running   0          66m
+kube-prometheus-stack-kube-state-metrics-567d49447b-wppcd   1/1     Running   0          66m
+kube-prometheus-stack-operator-5665f75c74-gzhz9             1/1     Running   0          66m
+kube-prometheus-stack-prometheus-node-exporter-cdbf9        1/1     Running   0          66m
+kube-prometheus-stack-prometheus-node-exporter-vbk65        1/1     Running   0          66m
+loki-0                                                      2/2     Running   0          64m
+loki-canary-kznkf                                           1/1     Running   0          64m
+loki-canary-z8l47                                           1/1     Running   0          64m
+loki-gateway-7dbfcfc68d-gqcfw                               1/1     Running   0          64m
+prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   0          65m
+tempo-0                                                     1/1     Running   0          62m
+#+end_src
+
+#+begin_src shell
+$ kubectl -n kube-system get pods | grep -E "cilium|hubble"
+cilium-5bnvg                      1/1     Running   0          70m
+cilium-dxrjs                      1/1     Running   0          72m
+cilium-envoy-458ws                1/1     Running   0          72m
+cilium-envoy-6k2m4                1/1     Running   0          70m
+cilium-operator-97c58b594-9wcmz   1/1     Running   0          72m
+cilium-operator-97c58b594-fncqd   1/1     Running   0          72m
+hubble-relay-6cf6b6fdf9-2qfk7     1/1     Running   0          72m
+hubble-ui-67d8bff4c4-mvhz6        2/2     Running   0          72m
+#+end_src
+
+** Grafana
++ Proxy grafana
+  #+begin_src shell
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+  #+end_src
++ Proxy Prometheus
+  #+begin_src shell
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+  #+end_src
++ Remote
+  Just to acces on VMs port such as 3000 taking account the wireguard VPN.
+  #+begin_src
+ssh -L 3000:127.0.0.1:3000 spike@192.188.200.101 -i ~/.ssh/id_ed25519_proxmox
+  #+end_src
+ or to prometheus
+ #+begin_src shell
+ssh -L 9090:127.0.0.1:9090 spike@192.188.200.101 -i ~/.ssh/id_ed25519_proxmox
+ #+end_src
++ DataSource
+  + Alertmanager
+  + Loki
+  + Prometheus
+  + Tempo
++ Prometheus promql
+  #+begin_src shell
+sum by (instance) (rate(node_cpu_seconds_total{mode!="idle"}[5m]))
+kube_pod_info
+  #+end_src
+** Loki check
++ Loki Logs kube-system
+#+begin_src shell
+{namespace="kube-system"}
+#+end_src
++ Generate traffic
+  #+begin_src shell
+kubectl run log-test --rm -it --image=busybox --restart=Never -- \
+  sh -c 'for i in $(seq 1 20); do echo "hello $i"; sleep 1; done'
+  #+end_src
++ Test traffic generated
+  #+begin_src shell
+{pod="log-test"}
+  #+end_src
+** Tempo check
++ Generate traces to tempo
+ #+begin_src shell
+kubectl run trace-test --rm -it \
+  --image=ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen \
+  -- \
+  telemetrygen traces \
+  --otlp-endpoint alloy.monitoring.svc.cluster.local:4317 \
+  --traces 20
+ #+end_src
++ Tempo explore
+  #+begin_src shell
+service.name="telemetrygen"
+  #+end_src
+** Cilium check
+#+begin_src shell
+kubectl get servicemonitor -A | grep -E "cilium|hubble"
+#+end_src
+We should see in prometheus target cilium and hubble
++ Cilium/Hubble traffic
+  #+begin_src shell
+kubectl run curl-test --rm -it --image=curlimages/curl --restart=Never -- \
+  sh -c 'for i in $(seq 1 20); do curl -sk https://kubernetes.default.svc; done'
+  #+end_src
++ Cilium/Hubble
+  #+begin_src shell
+{__name__=~"cilium_.*"}
+  #+end_src

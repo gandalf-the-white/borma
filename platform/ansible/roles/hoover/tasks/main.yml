@@ -75,6 +75,55 @@
   tags:
     - step1
 
+- name: Vérifier que la CRD ServiceMonitor existe
+  command: kubectl get crd servicemonitors.monitoring.coreos.com
+  register: servicemonitor_crd
+  changed_when: false
+  failed_when: servicemonitor_crd.rc != 0
+  tags:
+    - cilium-monitoring
+
+- name: Upgrade Cilium and Hubble metrics
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: cilium
+    chart_ref: cilium/cilium
+    release_namespace: kube-system
+    create_namespace: false
+    reuse_values: true
+    update_repo_cache: true
+    values: "{{ lookup('template', 'templates/values-cilium-metrics.yml.j2') | from_yaml }}"
+    wait: true
+    timeout: 10m
+  when: inventory_hostname in groups['bootstrap']
+  tags:
+    - cilium-monitoring
+
+- name: Vérifier les ServiceMonitor Cilium/Hubble
+  command: kubectl get servicemonitor -A
+  register: cilium_servicemonitors
+  changed_when: false
+  tags:
+    - cilium-monitoring
+
+- name: Afficher les ServiceMonitor Cilium/Hubble
+  debug:
+    msg: "{{ cilium_servicemonitors.stdout_lines | select('search', 'cilium|hubble') | list }}"
+  tags:
+    - cilium-monitoring
+
+- name: Redémarrer Cilium pour appliquer proprement les métriques
+  command: kubectl -n kube-system rollout restart daemonset/cilium
+  changed_when: true
+  tags:
+    - cilium-monitoring
+
+- name: Attendre que Cilium soit prêt
+  command: kubectl -n kube-system rollout status daemonset/cilium --timeout=180s
+  changed_when: false
+  tags:
+    - cilium-monitoring
+
 - name: Deploy Loki
   kubernetes.core.helm:
     kubeconfig: "{{ kubeconfig }}"

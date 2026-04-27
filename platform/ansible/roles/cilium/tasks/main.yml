@@ -64,3 +64,55 @@
     KUBECONFIG: "{{ kubeconfig }}"
   changed_when: false
   when: inventory_hostname in groups['bootstrap']
+
+- name: Detect architecture
+  command: uname -m
+  register: uname_m
+  changed_when: false
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Set Cilium CLI architecture
+  set_fact:
+    cilium_cli_arch: "{{ 'arm64' if uname_m.stdout == 'aarch64' else 'amd64' }}"
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Get latest stable Cilium CLI version
+  uri:
+    url: https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
+    return_content: true
+  register: cilium_cli_version
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Download Cilium CLI archive
+  get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version.content | trim }}/cilium-linux-{{ cilium_cli_arch }}.tar.gz"
+    dest: "/tmp/cilium-linux-{{ cilium_cli_arch }}.tar.gz"
+    mode: "0644"
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Download Cilium CLI checksum
+  get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version.content | trim }}/cilium-linux-{{ cilium_cli_arch }}.tar.gz.sha256sum"
+    dest: "/tmp/cilium-linux-{{ cilium_cli_arch }}.tar.gz.sha256sum"
+    mode: "0644"
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Verify Cilium CLI checksum
+  command: "sha256sum --check cilium-linux-{{ cilium_cli_arch }}.tar.gz.sha256sum"
+  args:
+    chdir: /tmp
+  changed_when: false
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Install Cilium CLI binary
+  unarchive:
+    src: "/tmp/cilium-linux-{{ cilium_cli_arch }}.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    mode: "0755"
+  when: inventory_hostname in groups['bootstrap']
+
+- name: Verify Cilium CLI
+  command: cilium version --client
+  changed_when: false
+  when: inventory_hostname in groups['bootstrap']
