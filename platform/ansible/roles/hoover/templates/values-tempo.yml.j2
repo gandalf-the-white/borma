@@ -1,0 +1,36 @@
+deploymentMode: SingleBinary
+
+tempo:
+  reportingEnabled: false
+
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+singleBinary:
+  replicas: 1
+
+  persistence:
+    enabled: true
+    storageClass: "{{ storage_class }}"
+    size: 20Gi
+
+service:
+  type: ClusterIP
+
+gateway:
+  enabled: false
+
+memcached:
+  enabled: false
+
+metricsGenerator:
+  enabled: false

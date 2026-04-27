@@ -8,10 +8,22 @@ grafana:
   adminPassword: "ChangeMeNow!"
 
   additionalDataSources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://kube-prometheus-stack-prometheus.{{ monitoring_namespace }}.svc.cluster.local:9090
+      isDefault: true
+
     - name: Loki
       type: loki
       access: proxy
-      url: http://loki-gateway.{{ monitoring_namespace }}.svc.cluster.local
+      url: http://loki-gateway.{{ monitoring_namespace }}.svc.cluster.local:3100
+      isDefault: false
+
+    - name: Tempo
+      type: tempo
+      access: proxy
+      url: http://tempo.{{ monitoring_namespace }}.svc.cluster.local:3200
       isDefault: false
 
   initChownData:
