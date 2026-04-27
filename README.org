@@ -3,17 +3,11 @@
 
 * Introduction
 It's just a simple project including the script to build a /K3s/ cluster with
-+ istio
++ k3s
 + k9s
 + Cilium
 + metallb
++ etc..
 
-* Platform
-** Server
-[[images/PLATFORM-2026-04-21-1554.svg]]
-* Video
-** Script
-* Reference
-+ [[https://dev.to/naveens16/envoy-sidecar-proxy-mastering-traffic-control-observability-and-autoscaling-in-kubernetes-kcg][Naveen]]
 * DynPerf
-Just follow the red [[DYNPERF.org][rabbit]]
+Just follow the [[DYNPERF.org][white rabbit]]
