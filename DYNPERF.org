@@ -64,7 +64,7 @@ Alloy simply forwards the logs to Loki and traces to tempo. The dual use of coll
 
 * Storage
 ** FreeBSD
-In order to use FreeBSD as a storage server, it is necessary to understand certain aspects, such as the differences between Linux and FreeBSD export mappings, local permissions and access security. I prefer Linux for containerisation out of necessity, but I choose FreeBSD for the stability of monolithic servers, such as those used for storage or DNS. However, that's just my personal preference. Access security will be handled by FreeBSD (pf.conf), and account isolation for Network File System (NFS) will be managed via jails (bastille), with the server (nfsd, rpcbind and mountd) running on the host.
+In order to use FreeBSD as a storage server, it is necessary to understand certain aspects, such as the differences between Linux and FreeBSD export mappings, local permissions and access security. I prefer Linux for containerisation out of necessity, but I choose FreeBSD for the stability of monolithic servers, such as those used for storage or DNS. However, that's just my personal preference. Access security will be handled by FreeBSD (pf.conf), and account isolation for Network File System (NFS) will be managed via jails (bastille), with the server (nfsd, rpcbind and mountd) running on the host... and it's fun.
 ** Exports
 #+begin_src emacs-lisp
 /srv/nfs/spike -maproot=spike -network 192.188.200.0 -mask 255.255.255.0
