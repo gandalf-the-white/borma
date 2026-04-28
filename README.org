@@ -9,5 +9,8 @@ It's just a simple project including the script to build a /K3s/ cluster with
 + metallb
 + etc..
 
+* Platform
+[[images/PLATFORM-2026-04-21-1554.svg]]
+
 * DynPerf
 Just follow the [[DYNPERF.org][white rabbit]]
