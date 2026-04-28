@@ -25,11 +25,11 @@
         "type": 2
       },
       "seed": 178180584,
-      "version": 736,
-      "versionNonce": 2022829976,
+      "version": 737,
+      "versionNonce": 750111640,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1777291166232,
+      "updated": 1777358100093,
       "link": null,
       "locked": false,
       "points": [
@@ -53,7 +53,7 @@
       "startBinding": null,
       "endBinding": null,
       "startArrowhead": null,
-      "endArrowhead": "triangle_outline",
+      "endArrowhead": "arrow",
       "elbowed": false
     },
     {
@@ -21317,11 +21317,11 @@
         "type": 2
       },
       "seed": 480706536,
-      "version": 594,
-      "versionNonce": 1111393512,
+      "version": 595,
+      "versionNonce": 383472024,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1777291172211,
+      "updated": 1777358092197,
       "link": null,
       "locked": false,
       "points": [
@@ -21345,7 +21345,7 @@
       "startBinding": null,
       "endBinding": null,
       "startArrowhead": null,
-      "endArrowhead": "triangle_outline",
+      "endArrowhead": "arrow",
       "elbowed": false
     },
     {
