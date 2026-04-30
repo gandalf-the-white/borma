@@ -7,6 +7,7 @@
     hostname: "${hostname}"
     prefix: "${prefix}"
     subnet: "${prefix}.0"
+    admin_ip: "${admin-ip}"
     http_proxy: "${proxy}"
     https_proxy: "${proxy}"
     no_proxy: "${noproxy}"

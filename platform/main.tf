@@ -62,7 +62,6 @@ module "storage" {
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   octet       = "64"
-  jail        = "65"
   vlan        = 200
   memory      = 4096
   nameserver  = var.nameserver
@@ -75,6 +74,7 @@ module "storage" {
   userctn     = var.userctn
   publkeyctn  = var.publkeyctn
   privkeyctn  = var.privkeyctn
+  adminip     = "10.9.0.30"
 }
 
 ####################################################################################

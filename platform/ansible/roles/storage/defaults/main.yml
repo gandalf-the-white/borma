@@ -4,13 +4,17 @@
 packages:
   - bastille
   - tree
+  - pftop
 
-bastille_interface: "eth0"
+ext_if: eth0
+bastille_interface: bastille0
 bastille_release: "15.0-RELEASE"
 
 jails:
   - name: nfs-server
     octet: "210"
+    prefix: "10.17.89"
+    subnet: "10.17.89.0/24"
     packages:
       - htop
       - tree
@@ -34,6 +38,8 @@ jails:
 
   - name: nats-server
     octet: "211"
+    prefix: "10.17.89"
+    subnet: "10.17.89.0/24"
     packages:
       - htop
       - nats-server

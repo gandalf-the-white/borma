@@ -1,25 +1,44 @@
-ext_if="{{ bastille_interface }}"
+ext_if = "{{ ext_if }}"
+jail_if = "bastille0"
 nfs_net = "{{ subnet }}/24"
+admin_ip = {{ admin_ip }}
+ssh_port = 22
 
+set block-policy return 
+scrub in on $ext_if all fragment reassemble
 set skip on lo
 
+table <jails> persist {
+{% for jail in jails %}
+  {{ jail.prefix }}.{{ jail.octet }}{% if not loop.last %},{% endif %}
+{% endfor %}
+} 
+nat on $ext_if from <jails> to any -> ($ext_if:0)
+rdr-anchor "rdr/*"
+
+
+{% for jail in jails %}
+{% for p in jail.ports | default([]) %}
+rdr pass on $ext_if proto {{ p.proto }} from any to ($ext_if) port {{ p.port }} -> {{ jail.prefix }}.{{ jail.octet }} port {{ p.port }}
+{% endfor %}
+{% endfor %}
+
 block in all
-pass out all keep state
 
-# SSH
-pass in quick on $ext_if proto tcp from $nfs_net to ($ext_if) port 22 keep state
-
-# NFSv4
+{# NFSv4 #}
 pass in quick on $ext_if proto tcp from $nfs_net to ($ext_if) port 2049 keep state
 
-# rpcbind (nécessaire)
+{# rpcbind (nécessaire) #}
 pass in quick on $ext_if proto tcp from $nfs_net to ($ext_if) port 111 keep state
 pass in quick on $ext_if proto udp from $nfs_net to ($ext_if) port 111 keep state
 
 {% for jail in jails %}
-# {{ jail.name }} Configuration
+{# {{ jail.name }} Configuration #}
 {% for p in jail.ports | default([]) %}
 pass in quick on $ext_if proto {{ p.proto }} from $nfs_net to ($ext_if) port {{ p.port }} keep state
 {% endfor %}
 {% endfor %}
 
+pass out keep state
+pass in quick on $jail_if from <jails> to any keep state
+pass in quick on $ext_if proto tcp from $admin_ip to any port $ssh_port keep state

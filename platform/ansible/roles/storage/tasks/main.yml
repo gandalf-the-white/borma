@@ -2,102 +2,165 @@
 ---
 # tasks file for ansible/roles/storage
 - name: Set runtime hostname
-  ansible.builtin.command: hostname {{ hostname }}
+  ansible.builtin.hostname:
+    name: "{{ hostname }}"
 
 - name: Persist hostname in rc.conf
-  ansible.builtin.lineinfile:
-    path: /etc/rc.conf
-    regexp: "^hostname="
-    line: 'hostname="{{ hostname }}"'
-    create: yes
+  community.general.sysrc:
+    name: hostname
+    value: "{{ hostname }}"
 
-- name: Install bastille and more
+- name: Install host packages
   community.general.pkgng:
-    name: "{{ item }}"
+    name: "{{ packages }}"
     state: present
-  with_items: "{{ packages }}"
 
 - name: Enable bastille at boot
   community.general.sysrc:
     name: bastille_enable
     value: "YES"
 
-- name: Clone interface
-  ansible.builtin.shell: /usr/sbin/sysrc cloned_interfaces+=lo1
+- name: Configure Bastille loopback clone
+  community.general.sysrc:
+    name: cloned_interfaces
+    value: lo1
 
-- name: Name interface
+- name: Rename lo1 to bastille0
   community.general.sysrc:
     name: ifconfig_lo1_name
-    value: "bastille0"
+    value: bastille0
 
-- name: Start service
-  ansible.builtin.shell: /usr/sbin/service netif cloneup
-  register: result_service
+- name: Bring cloned interfaces up
+  ansible.builtin.command: service netif cloneup
+  changed_when: false
 
 - name: Bootstrap Bastille release
-  command: bastille bootstrap {{ bastille_release }}
+  ansible.builtin.command: "bastille bootstrap {{ bastille_release }}"
   args:
     creates: "/usr/local/bastille/releases/{{ bastille_release }}"
 
-- name: Create jail
-  ansible.builtin.shell: "bastille create {{ item.name }} {{ bastille_release }}  {{ prefix }}.{{ item.octet }} {{ bastille_interface }}"
-  with_items: "{{ jails }}"
-  args:
-    creates: "/usr/local/bastille/jails/{{ item.name }}"
-
-- name: Add proxy pkg
-  ansible.builtin.blockinfile:
-    path: /usr/local/etc/pkg.conf
-    block: |
-      PKG_ENV: {
-        HTTP_PROXY  : "{{ http_proxy }}"
-        HTTPS_PROXY : "{{ https_proxy }}"
-      }
-    append_newline: true
-    prepend_newline: true
-
-- name: Create directory pk
-  file:
-    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc"
-    state: directory
-    recurse: yes
-  loop: "{{ jails }}"
-
-- name: Add proxy pkg
-  ansible.builtin.blockinfile:
-    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/pkg.conf"
-    block: |
-      PKG_ENV: {
-        HTTP_PROXY  : "{{ http_proxy }}"
-        HTTPS_PROXY : "{{ https_proxy }}"
-      }
-    create: true
-  loop: "{{ jails }}"
-
-- name: Update jail
-  ansible.builtin.shell: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update "
-  with_items: "{{ jails }}"
-
 ######################################
-# DAEMON CONFIGURATION
+# PF CONFIGURATION
 ######################################
-
-- name: Add packages
-  ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
-  loop: "{{ jails | subelements('packages', skip_missing=True) }}"
-
-- name: Enable packages in jail
-  ansible.builtin.shell: >
-    bastille sysrc {{ item.0.name }} {{item.1}}_enable=YES
-  loop: "{{ jails | subelements('daemons', skip_missing=True) }}"
 
 - name: Deploy pf.conf
-  template:
+  ansible.builtin.template:
     src: pf.conf.j2
     dest: /etc/pf.conf
     owner: root
     group: wheel
     mode: "0644"
+  tags: pfconf
+
+# - name: Ensure pf kernel module is loaded
+#   ansible.builtin.command: kldload pf
+#   register: pf_kldload
+#   failed_when: pf_kldload.rc != 0 and 'File exists' not in pf_kldload.stderr
+#   changed_when: pf_kldload.rc == 0
+
+- name: Check if pf kernel module is loaded
+  ansible.builtin.command: kldstat -n pf
+  register: pf_loaded
+  failed_when: false
+  changed_when: false
+
+- name: Load pf kernel module
+  ansible.builtin.command: kldload pf
+  when: pf_loaded.rc != 0
+
+- name: Enable pf at boot
+  community.general.sysrc:
+    name: pf_enable
+    value: "YES"
+
+- name: Validate pf.conf
+  ansible.builtin.command: pfctl -vnf /etc/pf.conf
+  register: pf_check
+  changed_when: false
+  failed_when: pf_check.rc != 0
+
+- name: Reload pf if valid
+  command: pfctl -f /etc/pf.conf
+  when: pf_check.rc == 0
+  notify: reload pf
+
+###################################################
+# CREATE JAILS
+###################################################
+
+- name: Create jails
+  ansible.builtin.command: >-
+    bastille create {{ item.name }} {{ bastille_release }}
+    {{ item.prefix }}.{{ item.octet }} {{ bastille_interface }}
+  loop: "{{ jails }}"
+  args:
+    creates: "/usr/local/bastille/jails/{{ item.name }}"
+
+- name: Copy host resolv.conf into jails
+  ansible.builtin.copy:
+    src: /etc/resolv.conf
+    dest: "/usr/local/bastille/jails/{{ item.name }}/root/etc/resolv.conf"
+    remote_src: true
+    owner: root
+    group: wheel
+    mode: "0644"
+  loop: "{{ jails }}"
+
+- name: Configure host pkg proxy
+  ansible.builtin.blockinfile:
+    path: /usr/local/etc/pkg.conf
+    create: true
+    marker: "# {mark} ANSIBLE MANAGED PKG PROXY"
+    block: |
+      PKG_ENV: {
+        HTTP_PROXY  : "{{ http_proxy }}"
+        HTTPS_PROXY : "{{ https_proxy }}"
+      }
+  when: http_proxy is defined or https_proxy is defined
+
+- name: Ensure jail pkg configuration directory exists
+  ansible.builtin.file:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc"
+    state: directory
+    owner: root
+    group: wheel
+    mode: "0755"
+  loop: "{{ jails }}"
+
+- name: Configure jail pkg proxy
+  ansible.builtin.blockinfile:
+    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/pkg.conf"
+    create: true
+    marker: "# {mark} ANSIBLE MANAGED PKG PROXY"
+    block: |
+      PKG_ENV: {
+        HTTP_PROXY  : "{{ http_proxy }}"
+        HTTPS_PROXY : "{{ https_proxy }}"
+      }
+  loop: "{{ jails }}"
+  when: http_proxy is defined or https_proxy is defined
+
+- name: Update pkg catalog in jails
+  ansible.builtin.command: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update"
+  loop: "{{ jails }}"
+  # changed_when: false
+  changed_when: "'No updates' not in jail_pkg_update.stdout"
+  register: jail_pkg_update
+  failed_when: jail_pkg_update.rc != 0
+
+######################################
+# DAEMON CONFIGURATION
+######################################
+
+- name: Install packages in jails
+  ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
+  loop: "{{ jails | subelements('packages', skip_missing=True) }}"
+  register: jail_pkg_install
+  changed_when: "'already installed' not in jail_pkg_install.stdout"
+
+- name: Enable daemons in jails
+  ansible.builtin.command: "bastille sysrc {{ item.0.name }} {{ item.1 }}_enable=YES"
+  loop: "{{ jails | subelements('daemons', skip_missing=True) }}"
 
 ######################################
 # NATS CONFIGURATION
@@ -218,30 +281,6 @@
     label: "[{{ item.0.name }}] {{ item.1 }}"
 
 ######################################
-# PF CONFIGURATION
-######################################
-
-- name: Check if pf module is loaded
-  command: kldstat -n pf
-  register: pf_loaded
-  failed_when: false
-  changed_when: false
-
-- name: Load pf module if not loaded
-  command: kldload pf
-  when: pf_loaded.rc != 0
-
-- name: check pf.conf
-  command: pfctl -vnf /etc/pf.conf
-  register: pf_check
-  changed_when: false
-
-- name: reload pf
-  command: pfctl -f /etc/pf.conf
-  when: pf_check.rc == 0
-  notify: reload pf
-
-######################################
 # DAEMON CONFIGURATION
 ######################################
 
@@ -314,3 +353,8 @@
     group: "{{ item.1.gid }}"
   loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
   tags: prompt
+
+- name: Restart pf
+  shell:
+    cmd: >
+      (( sleep 5; nohup service pf restart 1>/dev/null 2>&1 ) & )
