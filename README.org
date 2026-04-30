@@ -46,4 +46,4 @@ pass in inet proto tcp from any to any port ssh flags S/SA keep state
 #+end_src
 Just based on bastille pf configuration
 * DynPerf
-Just follow the [[DYNPERF.org][white rabbit]]
+👉 Just follow the [[DYNPERF.org][white rabbit]]
