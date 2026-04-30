@@ -1,6 +1,16 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for ansible/roles/bastille
+- name: Set runtime hostname
+  ansible.builtin.command: hostname {{ hostname }}
+
+- name: Persist hostname in rc.conf
+  ansible.builtin.lineinfile:
+    path: /etc/rc.conf
+    regexp: "^hostname="
+    line: 'hostname="{{ hostname }}"'
+    create: yes
+
 - name: Update pkg repository on host
   command: pkg update -f
 
@@ -30,34 +40,6 @@
   ansible.builtin.shell: /usr/sbin/service netif cloneup
   register: result_service
 
-# - name: Deploy pf.conf
-#   template:
-#     src: pf.conf.j2
-#     dest: /etc/pf.conf
-#     owner: root
-#     group: wheel
-#     mode: "0644"
-
-# - name: Check if pf module is loaded
-#   command: kldstat -n pf
-#   register: pf_loaded
-#   failed_when: false
-#   changed_when: false
-
-# - name: Load pf module if not loaded
-#   command: kldload pf
-#   when: pf_loaded.rc != 0
-
-# - name: check pf.conf
-#   command: pfctl -vnf /etc/pf.conf
-#   register: pf_check
-#   changed_when: false
-
-# - name: reload pf
-#   command: pfctl -f /etc/pf.conf
-#   when: pf_check.rc == 0
-#   notify: reload pf
-
 - name: Bootstrap Bastille release
   command: bastille bootstrap {{ bastille_release }}
   args:
@@ -68,10 +50,6 @@
   with_items: "{{ jails }}"
   args:
     creates: "/usr/local/bastille/jails/{{ item.name }}"
-  # notify: reload pf
-
-# - name: reload
-# command: "pfctl -f /etc/pf.conf"
 
 - name: Add proxy pkg
   ansible.builtin.blockinfile:
@@ -167,3 +145,43 @@
     bastille service {{ item.name }} nginx restart
   loop: "{{ jails }}"
   tags: jails
+
+###############################################
+# PF CONFIGURATION
+###############################################
+
+- name: Deploy pf.conf
+  template:
+    src: pf.conf.j2
+    dest: /etc/pf.conf
+    owner: root
+    group: wheel
+    mode: "0644"
+
+- name: Check if pf module is loaded
+  command: kldstat -n pf
+  register: pf_loaded
+  failed_when: false
+  changed_when: false
+
+- name: Load pf module if not loaded
+  command: kldload pf
+  when: pf_loaded.rc != 0
+
+- name: check pf.conf
+  command: pfctl -vnf /etc/pf.conf
+  register: pf_check
+  changed_when: false
+
+- name: reload pf
+  command: pfctl -f /etc/pf.conf
+  when: pf_check.rc == 0
+  notify: reload pf
+
+- name: Update tcsh prompt
+  ansible.builtin.replace:
+    path: "/home/{{ item }}/.cshrc"
+    regexp: '^\t*set\s+prompt\s*=.*'
+    replace: '\tset prompt="\\n%{\033[0;32m%}%n@%m:%{\033[0;33m%}%~%{\033[1;30m%}>%{\033[1;37m%} "'
+  loop: "{{ accounts }}"
+  tags: prompt

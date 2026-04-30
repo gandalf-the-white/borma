@@ -1,3 +1,4 @@
+variable "name" {}
 variable "area" {}
 variable "prefix" {}
 variable "octet" {}
@@ -14,4 +15,4 @@ variable "nameserver" {}
 variable "cloudinit" {}
 variable "memory" {}
 variable "proxy" {}
-variable "jail" {}
+variable "adminip" {}

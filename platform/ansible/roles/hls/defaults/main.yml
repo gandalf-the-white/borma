@@ -1,0 +1,39 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/hls
+packages:
+  - bastille
+  - tree
+  - pftop
+  - ffmpeg
+  - bash
+
+ext_if: eth0
+bastille_interface: bastille0
+bastille_release: "15.0-RELEASE"
+
+jails:
+  - name: hls-server
+    octet: "220"
+    prefix: "10.17.89"
+    subnet: "10.17.89.0/24"
+    packages:
+      - htop
+      - tree
+      - nginx
+    daemons:
+      - nginx
+    services:
+      - nginx
+    ports:
+      - port: 80
+        proto: tcp
+      - port: 443
+        proto: tcp
+    accounts:
+      - name: spike
+        uid: 1010
+        gid: 1010
+    new_groups:
+      - name: spike
+        gid: 1010

@@ -2,6 +2,12 @@
 ---
 # tasks file for roles/videos
 
+- name: Waiting for SSH
+  ansible.builtin.wait_for_connection:
+    delay: 10
+    timeout: 300
+    sleep: 5
+
 - name: Download films
   get_url:
     url: "{{ item.url }}"

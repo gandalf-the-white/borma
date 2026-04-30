@@ -31,11 +31,11 @@ module "south" {
 
 module "hls" {
   source      = "./modules/hls"
+  name        = "hls-server"
   area        = "south"
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   octet       = "54"
-  jail        = "55"
   vlan        = 200
   memory      = 4096
   nameserver  = var.nameserver
@@ -48,6 +48,7 @@ module "hls" {
   userctn     = var.userctn
   publkeyctn  = var.publkeyctn
   privkeyctn  = var.privkeyctn
+  adminip     = "10.9.0.30"
 }
 
 ####################################################################################

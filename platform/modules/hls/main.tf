@@ -4,7 +4,7 @@
 
 resource "proxmox_vm_qemu" "server" {
   description = "Deploiement VM Ubuntu on Proxmox"
-  name        = "${var.area}-server"
+  name        = var.name
   target_node = var.target_node
   clone       = var.clone
 
@@ -84,9 +84,11 @@ resource "local_file" "inventory" {
 resource "local_file" "playbook" {
   content = templatefile("${path.module}/manifests/playbook-template.yaml",
     {
-      jail    = "${var.prefix}.${var.jail}/24"
-      proxy   = var.proxy
-      noproxy = "${var.prefix}.0/24"
+      name     = "${var.name}"
+      prefix   = "${var.prefix}"
+      admin-ip = "${var.adminip}"
+      proxy    = var.proxy
+      noproxy  = "${var.prefix}.0/24"
   })
   filename        = "./ansible/playbook-hls.yaml"
   file_permission = "0644"
