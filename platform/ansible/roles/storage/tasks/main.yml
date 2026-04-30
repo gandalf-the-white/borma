@@ -38,6 +38,10 @@
   args:
     creates: "/usr/local/bastille/releases/{{ bastille_release }}"
 
+######################################
+# PF CONFIGURATION
+######################################
+
 - name: Deploy pf.conf
   ansible.builtin.template:
     src: pf.conf.j2
@@ -70,6 +74,10 @@
   ansible.builtin.service:
     name: pf
     state: started
+
+###################################################
+# CREATE JAILS
+###################################################
 
 - name: Create jails
   ansible.builtin.command: >-
@@ -116,6 +124,10 @@
   loop: "{{ jails }}"
   register: jail_pkg_update
   changed_when: "'No updates' not in jail_pkg_update.stdout"
+
+######################################
+# DAEMON CONFIGURATION
+######################################
 
 - name: Install packages in jails
   ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
@@ -195,56 +207,41 @@
 
   community.general.sysrc:
     name: rpcbind_enable
-
     value: "YES"
 
 - name: Configure mountd with fixed port
-
   community.general.sysrc:
     name: mountd_flags
-
     value: "-n -p 892"
 
 - name: Enable and configure rpc.statd
-
   community.general.sysrc:
     name: rpc_statd_enable
-
     value: "YES"
 
 - name: Set rpc.statd port
-
   community.general.sysrc:
     name: rpc_statd_flags
-
     value: "-p 1003"
 
 - name: Enable and configure rpc.lockd
-
   community.general.sysrc:
     name: rpc_lockd_enable
-
     value: "YES"
 
 - name: Set rpc.lockd port
-
   community.general.sysrc:
     name: rpc_lockd_flags
-
     value: "-p 894"
 
 - name: Enable NFS server
-
   community.general.sysrc:
     name: nfs_server_enable
-
     value: "YES"
 
 - name: Configure NFS server flags (TCP+UDP, threads)
-
   community.general.sysrc:
     name: nfs_server_flags
-
     value: "-u -t -n 8"
 
 # OPTION: NFSv4 only (décommente si tu veux simplifier)
