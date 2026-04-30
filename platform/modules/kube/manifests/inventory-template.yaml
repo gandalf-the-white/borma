@@ -5,27 +5,27 @@ all:
         bootstrap:
           hosts:
 %{ for master in masters ~}
-%{ if substr(master.default_ipv4_address,-3,-1) == "101" ~}
-            ${master.name}:
-              ansible_host: ${master.default_ipv4_address}
-              ansible_hostname: ${master.name}
+%{ if substr(master.address,-3,-1) == "101" ~}
+            ${master.hostname}:
+              ansible_host: ${master.address}
+              ansible_hostname: ${master.hostname}
 %{ endif ~}
 %{ endfor ~}
         master_nodes:
           hosts:
 %{ for master in masters ~}
-%{ if substr(master.default_ipv4_address,-3,-1) != "101" ~}
-            ${master.name}:
-              ansible_host: ${master.default_ipv4_address}
-              ansible_hostname: ${master.name}
+%{ if substr(master.address,-3,-1) != "101" ~}
+            ${master.hostname}:
+              ansible_host: ${master.address}
+              ansible_hostname: ${master.hostname}
 %{ endif ~}
 %{ endfor ~}
         worker_nodes:
           hosts:
 %{ for worker in workers ~}
-            ${worker.name}:
-              ansible_host: ${worker.default_ipv4_address}
-              ansible_hostname: ${worker.name}
+            ${worker.hostname}:
+              ansible_host: ${worker.address}
+              ansible_hostname: ${worker.hostname}
 %{ endfor ~}
   vars:
     ansible_user: ${userctn}

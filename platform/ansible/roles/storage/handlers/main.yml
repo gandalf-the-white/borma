@@ -1,14 +1,35 @@
 #SPDX-License-Identifier: MIT-0
 ---
-# handlers file for ansible/roles/storage
 - name: reload pf
-  command: pfctl -f /etc/pf.conf
-  listen: "reload pf"
+  ansible.builtin.command: pfctl -f /etc/pf.conf
+  listen: reload pf
+
+# - name: reload mountd
+#   ansible.builtin.command: service mountd reload
+#   listen: reload mountd
+
+- name: restart nfs services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - rpcbind
+    - statd
+    - lockd
+    - nfsd
+    - mountd
+  listen: restart nfs services
 
 - name: reload mountd
   ansible.builtin.service:
     name: mountd
     state: reloaded
 
-- name: reload mountd
-  ansible.builtin.command: service mountd reload
+- name: restart nfs stack
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - rpcbind
+    - nfsd
+    - mountd

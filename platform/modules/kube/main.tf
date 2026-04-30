@@ -140,11 +140,27 @@ resource "proxmox_vm_qemu" "worker_server" {
 ##  ANSIBLE
 ####################################################################################
 
+locals {
+  masters_inventory = [
+    for i, vm in proxmox_vm_qemu.master_server : {
+      address  = "${var.prefix}.${var.masters[i].octet}"
+      hostname = vm.name
+    }
+  ]
+
+  workers_inventory = [
+    for i, vm in proxmox_vm_qemu.worker_server : {
+      address  = "${var.prefix}.${var.workers[i].octet}"
+      hostname = vm.name
+    }
+  ]
+}
+
 resource "local_file" "inventory" {
   content = templatefile("${path.module}/manifests/inventory-template.yaml",
     {
-      masters    = proxmox_vm_qemu.master_server[*]
-      workers    = proxmox_vm_qemu.worker_server[*]
+      masters    = local.masters_inventory
+      workers    = local.workers_inventory
       userctn    = var.userctn
       privkeyctn = var.privkeyctn
   })
@@ -169,17 +185,17 @@ resource "local_file" "playbook" {
   file_permission = "0644"
 }
 
-resource "null_resource" "play_ansible" {
-  provisioner "local-exec" {
-    command = "ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-k3s.yaml"
-  }
-  depends_on = [
-    proxmox_vm_qemu.master_server,
-    proxmox_vm_qemu.worker_server,
-    local_file.inventory,
-    local_file.playbook
-  ]
-}
+# resource "null_resource" "play_ansible" {
+#   provisioner "local-exec" {
+#     command = "ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-k3s.yaml"
+#   }
+#   depends_on = [
+#     proxmox_vm_qemu.master_server,
+#     proxmox_vm_qemu.worker_server,
+#     local_file.inventory,
+#     local_file.playbook
+#   ]
+# }
 
 
 ####################################################################################

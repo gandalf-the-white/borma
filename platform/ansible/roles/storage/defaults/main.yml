@@ -1,6 +1,5 @@
 #SPDX-License-Identifier: MIT-0
 ---
-# defaults file for ansible/roles/storage
 packages:
   - bastille
   - tree
@@ -9,6 +8,16 @@ packages:
 ext_if: eth0
 bastille_interface: bastille0
 bastille_release: "15.0-RELEASE"
+
+# Réseau autorisé côté clients NFS
+nfs_client_network: "192.188.200.0"
+nfs_client_mask: "255.255.255.0"
+nfs_client_cidr: "192.188.200.0/24"
+
+# Ports RPC fixes pour pouvoir filtrer proprement avec pf
+mountd_port: 892
+rpc_statd_port: 662
+rpc_lockd_port: 32803
 
 jails:
   - name: nfs-server
@@ -72,22 +81,22 @@ nfs_exports:
     mode: "0700"
     owner: 1010
     group: 1010
-    export_opts: "-maproot=spike -network 192.188.200.0 -mask 255.255.255.0"
+    export_opts: "-maproot=1010:1010 -network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"
 
   - name: faye
     mode: "0700"
     owner: 1020
     group: 1020
-    export_opts: "-maproot=faye -network 192.188.200.0 -mask 255.255.255.0"
+    export_opts: "-maproot=1020:1020 -network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"
 
   - name: crew
     mode: "0770"
     owner: 0
     group: 1030
-    export_opts: "-network 192.188.200.0 -mask 255.255.255.0"
+    export_opts: "-network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"
 
   - name: kube
     mode: "1777"
     owner: 65534
     group: 65533
-    export_opts: "-mapall=nobody -alldirs -network 192.188.200.0 -mask 255.255.255.0"
+    export_opts: "-mapall=65534:65533 -alldirs -network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"

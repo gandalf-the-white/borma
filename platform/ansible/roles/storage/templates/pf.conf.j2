@@ -1,10 +1,10 @@
 ext_if = "{{ ext_if }}"
-jail_if = "bastille0"
-nfs_net = "{{ subnet }}/24"
-admin_ip = {{ admin_ip }}
-ssh_port = 22
+jail_if = "{{ bastille_interface }}"
+nfs_net = "{{ nfs_client_cidr }}"
+admin_ip = "{{ admin_ip }}"
+ssh_port = "22"
 
-set block-policy return 
+set block-policy return
 scrub in on $ext_if all fragment reassemble
 set skip on lo
 
@@ -12,10 +12,10 @@ table <jails> persist {
 {% for jail in jails %}
   {{ jail.prefix }}.{{ jail.octet }}{% if not loop.last %},{% endif %}
 {% endfor %}
-} 
+}
+
 nat on $ext_if from <jails> to any -> ($ext_if:0)
 rdr-anchor "rdr/*"
-
 
 {% for jail in jails %}
 {% for p in jail.ports | default([]) %}
@@ -24,21 +24,19 @@ rdr pass on $ext_if proto {{ p.proto }} from any to ($ext_if) port {{ p.port }} 
 {% endfor %}
 
 block in all
-
-{# NFSv4 #}
-pass in quick on $ext_if proto tcp from $nfs_net to ($ext_if) port 2049 keep state
-
-{# rpcbind (nécessaire) #}
-pass in quick on $ext_if proto tcp from $nfs_net to ($ext_if) port 111 keep state
-pass in quick on $ext_if proto udp from $nfs_net to ($ext_if) port 111 keep state
-
-{% for jail in jails %}
-{# {{ jail.name }} Configuration #}
-{% for p in jail.ports | default([]) %}
-pass in quick on $ext_if proto {{ p.proto }} from $nfs_net to ($ext_if) port {{ p.port }} keep state
-{% endfor %}
-{% endfor %}
-
 pass out keep state
 pass in quick on $jail_if from <jails> to any keep state
-pass in quick on $ext_if proto tcp from $admin_ip to any port $ssh_port keep state
+
+# Administration
+pass in quick on $ext_if proto tcp from $admin_ip to ($ext_if) port $ssh_port keep state
+
+# NFSv3 côté hôte
+pass in quick on $ext_if proto { tcp udp } from $nfs_net to ($ext_if) port { 111, 2049, {{ mountd_port }}, {{ rpc_statd_port }}, {{ rpc_lockd_port }} } keep state
+# pass in quick on $ext_if proto { tcp udp } from $nfs_net to ($ext_if) port { 111, 2049, 892, 894, 925, 1003 } keep state (sloppy)
+
+# Ports publiés vers les jails
+{% for jail in jails %}
+{% for p in jail.ports | default([]) %}
+pass in quick on $ext_if proto {{ p.proto }} from any to ($ext_if) port {{ p.port }} keep state
+{% endfor %}
+{% endfor %}
