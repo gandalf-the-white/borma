@@ -18,14 +18,15 @@ I use two types of template in Proxmox to set up my virtual machines.
 The first is for the Kubernetes cluster (i.e. the masters and workers). This template is based on a standard Debian (v13) installation.
 The second template is for the storage virtual machines and the HLS server. This image is based on a FreeBSD (v15) installation that has been adapted for jails.
 Three services are launched automatically:
-+ nfsd
-+ rpcbind
-+ mountd
 + qemu_guest_agent
 + cloudinit
 + openssh
 + pf
 + pflog
+To speed up the boot process, I enable
+#+begin_src emacs-lisp
+$ sysrc -f /boot/loader.conf autoboot_delay=-1
+#+end_src
 ** Pf configuration
 #+begin_src emacs-lisp
 ext_if="eth0"
