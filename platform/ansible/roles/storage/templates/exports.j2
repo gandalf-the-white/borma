@@ -1,8 +1,13 @@
 {# {% for item in nfs_exports %} #}
 {# /srv/nfs/{{ item.name }} {{ item.export_opts }} #}
 {# {% endfor %} #}
+
+{# {% for export in nfs_exports %} #}
+{# {{ "/srv/nfs/" + export.name }} \ #}
+{#   -maproot={{ export.owner }}:{{ export.group }} \ #}
+{#   {{ export.export_opts }} #}
+{# {% endfor %} #}
+
 {% for export in nfs_exports %}
-{{ "/srv/nfs/" + export.name }} \
-  -maproot={{ export.owner }}:{{ export.group }} \
-  {{ export.export_opts }}
+{{ "/srv/nfs/" + export.name }} {{ export.export_opts }}
 {% endfor %}

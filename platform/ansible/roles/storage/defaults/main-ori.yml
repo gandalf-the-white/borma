@@ -1,0 +1,93 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/storage
+packages:
+  - bastille
+  - tree
+  - pftop
+
+ext_if: eth0
+bastille_interface: bastille0
+bastille_release: "15.0-RELEASE"
+
+jails:
+  - name: nfs-server
+    octet: "210"
+    prefix: "10.17.89"
+    subnet: "10.17.89.0/24"
+    packages:
+      - htop
+      - tree
+    daemons: []
+    services: []
+    ports: []
+    accounts:
+      - name: spike
+        uid: 1010
+        gid: 1010
+      - name: faye
+        uid: 1020
+        gid: 1020
+    new_groups:
+      - name: crew
+        gid: 1030
+      - name: spike
+        gid: 1010
+      - name: faye
+        gid: 1020
+
+  - name: nats-server
+    octet: "211"
+    prefix: "10.17.89"
+    subnet: "10.17.89.0/24"
+    packages:
+      - htop
+      - nats-server
+    daemons:
+      - nats
+    services:
+      - nats
+    ports:
+      - port: 4222
+        proto: tcp
+    accounts:
+      - name: spike
+        uid: 1010
+        gid: 1010
+      - name: faye
+        uid: 1020
+        gid: 1020
+    new_groups:
+      - name: crew
+        gid: 1030
+      - name: spike
+        gid: 1010
+      - name: faye
+        gid: 1020
+
+nfs_jail_name: nfs-server
+
+nfs_exports:
+  - name: spike
+    mode: "0700"
+    owner: 1010
+    group: 1010
+    export_opts: "-maproot=spike -network 192.188.200.0 -mask 255.255.255.0"
+
+  - name: faye
+    mode: "0700"
+    owner: 1020
+    group: 1020
+    export_opts: "-maproot=faye -network 192.188.200.0 -mask 255.255.255.0"
+
+  - name: crew
+    mode: "0770"
+    owner: 0
+    group: 1030
+    export_opts: "-network 192.188.200.0 -mask 255.255.255.0"
+
+  - name: kube
+    mode: "1777"
+    owner: 65534
+    group: 65533
+    export_opts: "-mapall=nobody -alldirs -network 192.188.200.0 -mask 255.255.255.0"

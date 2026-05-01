@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for ansible/roles/storage
+- name: reload pf
+  command: pfctl -f /etc/pf.conf
+  listen: "reload pf"
+
+- name: reload mountd
+  ansible.builtin.service:
+    name: mountd
+    state: reloaded
+
+- name: reload mountd
+  ansible.builtin.command: service mountd reload

@@ -1,0 +1,3 @@
+{% for item in nfs_exports %}
+/srv/nfs/{{ item.name }} {{ item.export_opts }}
+{% endfor %}
