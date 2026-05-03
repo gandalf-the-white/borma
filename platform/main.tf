@@ -102,34 +102,6 @@ module "dev" {
   privkeyctn  = var.privkeyctn
 }
 
-
-####################################################################################
-## L I S P 
-####################################################################################
-
-# module "lisp" {
-#   source      = "./modules/lisp"
-#   area        = "north"
-#   lisp        = var.lisp
-#   nbmasters   = 1
-#   nbworkers   = 1
-#   prefix      = var.prefix # VLAN 200
-#   bridge      = var.bridge
-#   vlan        = 200
-#   nameserver  = var.nameserver
-#   target_node = var.target_node
-#   clone       = "debian-13-tmpl"
-#   size        = 30
-#   storage     = var.storage
-#   cloudinit   = var.cloudinit
-#   proxy       = var.proxy
-#   userctn     = var.userctn
-#   publkeyctn  = var.publkeyctn
-#   privkeyctn  = var.privkeyctn
-# }
-
-
-
 ####################################################################################
 ## O U T P U T
 ####################################################################################
@@ -148,11 +120,6 @@ output "dev_server_ip_address" {
   description = "Dev Server IP Address"
   value       = module.dev
 }
-
-# output "lisp_server_ip_address" {
-#   description = "Lisp Server IP Address"
-#   value       = module.lisp
-# }
 
 output "storage_server_ip_address" {
   description = "Storage Server IP Address"
