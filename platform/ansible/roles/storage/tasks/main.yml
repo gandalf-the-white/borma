@@ -327,3 +327,8 @@
       loop: "{{ jails | subelements('services', skip_missing=True) }}"
       loop_control:
         label: "[{{ item.0.name }}] {{ item.1 }}"
+
+- name: Restart pf
+  shell:
+    cmd: >
+      (( sleep 5; nohup service pf restart 1>/dev/null 2>&1 ) & )
