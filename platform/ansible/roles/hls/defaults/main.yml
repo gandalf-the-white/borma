@@ -28,8 +28,6 @@ jails:
     ports:
       - port: 80
         proto: tcp
-      - port: 443
-        proto: tcp
     accounts:
       - name: spike
         uid: 1010

@@ -2,271 +2,282 @@
 ---
 # tasks file for ansible/roles/hls
 
-- name: Set runtime hostname
-  ansible.builtin.hostname:
-    name: "{{ hostname }}"
+- name: Bastille installation
+  tags: bastille
+  block:
+    - name: Set runtime hostname
+      ansible.builtin.hostname:
+        name: "{{ hostname }}"
 
-- name: Persist hostname in rc.conf
-  community.general.sysrc:
-    name: hostname
-    value: "{{ hostname }}"
+    - name: Persist hostname in rc.conf
+      community.general.sysrc:
+        name: hostname
+        value: "{{ hostname }}"
 
-- name: Install host packages
-  community.general.pkgng:
-    name: "{{ packages }}"
-    state: present
+    - name: Install host packages
+      community.general.pkgng:
+        name: "{{ packages }}"
+        state: present
 
-- name: Enable bastille at boot
-  community.general.sysrc:
-    name: bastille_enable
-    value: "YES"
+    - name: Enable bastille at boot
+      community.general.sysrc:
+        name: bastille_enable
+        value: "YES"
 
-- name: Configure Bastille loopback clone
-  community.general.sysrc:
-    name: cloned_interfaces
-    value: lo1
+    - name: Configure Bastille loopback clone
+      community.general.sysrc:
+        name: cloned_interfaces
+        value: lo1
 
-- name: Rename lo1 to bastille0
-  community.general.sysrc:
-    name: ifconfig_lo1_name
-    value: bastille0
+    - name: Rename lo1 to bastille0
+      community.general.sysrc:
+        name: ifconfig_lo1_name
+        value: "{{ bastille_interface }}"
 
-- name: Bring cloned interfaces up
-  ansible.builtin.command: service netif cloneup
-  changed_when: false
+    - name: Bring cloned interfaces up
+      ansible.builtin.command: service netif cloneup
+      changed_when: false
 
-- name: Bootstrap Bastille release
-  ansible.builtin.command: "bastille bootstrap {{ bastille_release }}"
-  args:
-    creates: "/usr/local/bastille/releases/{{ bastille_release }}"
+    - name: Bootstrap Bastille release
+      ansible.builtin.command: "bastille bootstrap {{ bastille_release }}"
+      args:
+        creates: "/usr/local/bastille/releases/{{ bastille_release }}"
 
 ######################################
 # PF CONFIGURATION
 ######################################
 
-- name: Deploy pf.conf
-  ansible.builtin.template:
-    src: pf.conf.j2
-    dest: /etc/pf.conf
-    owner: root
-    group: wheel
-    mode: "0644"
+- name: PF configuration
+  tags: pf
+  block:
+    - name: Deploy pf.conf
+      ansible.builtin.template:
+        src: pf.conf.j2
+        dest: /etc/pf.conf
+        owner: root
+        group: wheel
+        mode: "0644"
+      # notify: reload pf
 
-# - name: Ensure pf kernel module is loaded
-#   ansible.builtin.command: kldload pf
-#   register: pf_kldload
-#   failed_when: pf_kldload.rc != 0 and 'File exists' not in pf_kldload.stderr
-#   changed_when: pf_kldload.rc == 0
+    - name: Check if pf kernel module is loaded
+      ansible.builtin.command: kldstat -n pf
+      register: pf_loaded
+      failed_when: false
+      changed_when: false
 
-- name: Check if pf kernel module is loaded
-  ansible.builtin.command: kldstat -n pf
-  register: pf_loaded
-  failed_when: false
-  changed_when: false
+    - name: Load pf kernel module
+      ansible.builtin.command: kldload pf
+      when: pf_loaded.rc != 0
 
-- name: Load pf kernel module
-  ansible.builtin.command: kldload pf
-  when: pf_loaded.rc != 0
+    - name: Enable pf at boot
+      community.general.sysrc:
+        name: pf_enable
+        value: "YES"
 
-- name: Enable pf at boot
-  community.general.sysrc:
-    name: pf_enable
-    value: "YES"
+    - name: Validate pf.conf
+      ansible.builtin.command: pfctl -vnf /etc/pf.conf
+      changed_when: false
 
-- name: Validate pf.conf
-  ansible.builtin.command: pfctl -vnf /etc/pf.conf
-  register: pf_check
-  changed_when: false
-  failed_when: pf_check.rc != 0
-
-- name: Reload pf if valid
-  command: pfctl -f /etc/pf.conf
-  when: pf_check.rc == 0
-  notify: reload pf
+    - name: Ensure pf is running
+      ansible.builtin.service:
+        name: pf
+        state: started
 
 ###################################################
 # CREATE JAILS
 ###################################################
 
-- name: Create jails
-  ansible.builtin.command: >-
-    bastille create {{ item.name }} {{ bastille_release }}
-    {{ item.prefix }}.{{ item.octet }} {{ bastille_interface }}
-  loop: "{{ jails }}"
-  args:
-    creates: "/usr/local/bastille/jails/{{ item.name }}"
+- name: Jails management
+  tags: jails
+  block:
+    - name: Create jails
+      ansible.builtin.command: >-
+        bastille create {{ item.name }} {{ bastille_release }}
+        {{ item.prefix }}.{{ item.octet }} {{ bastille_interface }}
+      loop: "{{ jails }}"
+      args:
+        creates: "/usr/local/bastille/jails/{{ item.name }}"
 
-- name: Copy host resolv.conf into jails
-  ansible.builtin.copy:
-    src: /etc/resolv.conf
-    dest: "/usr/local/bastille/jails/{{ item.name }}/root/etc/resolv.conf"
-    remote_src: true
-    owner: root
-    group: wheel
-    mode: "0644"
-  loop: "{{ jails }}"
+    - name: Copy host resolv.conf into jails
+      ansible.builtin.copy:
+        src: /etc/resolv.conf
+        dest: "/usr/local/bastille/jails/{{ item.name }}/root/etc/resolv.conf"
+        remote_src: true
+        owner: root
+        group: wheel
+        mode: "0644"
+      loop: "{{ jails }}"
 
-- name: Configure host pkg proxy
-  ansible.builtin.blockinfile:
-    path: /usr/local/etc/pkg.conf
-    create: true
-    marker: "# {mark} ANSIBLE MANAGED PKG PROXY"
-    block: |
-      PKG_ENV: {
-        HTTP_PROXY  : "{{ http_proxy }}"
-        HTTPS_PROXY : "{{ https_proxy }}"
-      }
-  when: http_proxy is defined or https_proxy is defined
+    - name: Configure jail pkg proxy
+      ansible.builtin.blockinfile:
+        path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/pkg.conf"
+        create: true
+        marker: "# {mark} ANSIBLE MANAGED PKG PROXY"
+        block: |
+          PKG_ENV: {
+            HTTP_PROXY  : "{{ http_proxy | default('') }}"
+            HTTPS_PROXY : "{{ https_proxy | default('') }}"
+          }
+      loop: "{{ jails }}"
+      when: http_proxy is defined or https_proxy is defined
 
-- name: Ensure jail pkg configuration directory exists
-  ansible.builtin.file:
-    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc"
-    state: directory
-    owner: root
-    group: wheel
-    mode: "0755"
-  loop: "{{ jails }}"
+    - name: Ensure jail pkg configuration directory exists
+      ansible.builtin.file:
+        path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc"
+        state: directory
+        owner: root
+        group: wheel
+        mode: "0755"
+      loop: "{{ jails }}"
 
-- name: Configure jail pkg proxy
-  ansible.builtin.blockinfile:
-    path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/pkg.conf"
-    create: true
-    marker: "# {mark} ANSIBLE MANAGED PKG PROXY"
-    block: |
-      PKG_ENV: {
-        HTTP_PROXY  : "{{ http_proxy }}"
-        HTTPS_PROXY : "{{ https_proxy }}"
-      }
-  loop: "{{ jails }}"
-  when: http_proxy is defined or https_proxy is defined
-
-- name: Update pkg catalog in jails
-  ansible.builtin.command: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update"
-  loop: "{{ jails }}"
-  # changed_when: false
-  changed_when: "'No updates' not in jail_pkg_update.stdout"
-  register: jail_pkg_update
-  failed_when: jail_pkg_update.rc != 0
+    - name: Update pkg catalog in jails
+      ansible.builtin.command: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update"
+      loop: "{{ jails }}"
+      # changed_when: false
+      changed_when: "'No updates' not in jail_pkg_update.stdout"
+      register: jail_pkg_update
+      failed_when: jail_pkg_update.rc != 0
 
 ######################################
 # DAEMON CONFIGURATION
 ######################################
 
-- name: Install packages in jails
-  ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
-  loop: "{{ jails | subelements('packages', skip_missing=True) }}"
-  register: jail_pkg_install
-  changed_when: "'already installed' not in jail_pkg_install.stdout"
+- name: Daemon configuration
+  tags: daemon
+  block:
+    - name: Install packages in jails
+      ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
+      loop: "{{ jails | subelements('packages', skip_missing=True) }}"
+      register: jail_pkg_install
+      changed_when: "'already installed' not in jail_pkg_install.stdout"
 
-- name: Enable daemons in jails
-  ansible.builtin.command: "bastille sysrc {{ item.0.name }} {{ item.1 }}_enable=YES"
-  loop: "{{ jails | subelements('daemons', skip_missing=True) }}"
+    - name: Enable daemons in jails
+      ansible.builtin.command: "bastille sysrc {{ item.0.name }} {{ item.1 }}_enable=YES"
+      loop: "{{ jails | subelements('daemons', skip_missing=True) }}"
 
 ######################################
 # HLS CONFIGURATION PERMISSIONS
 ######################################
 
-- name: Check if groups exist in jails
-  ansible.builtin.command: "bastille cmd {{ item.0.name }} pw groupshow {{ item.1.name }}"
-  register: jail_group_check
-  failed_when: false
-  changed_when: false
-  loop: "{{ jails | subelements('new_groups', skip_missing=True) }}"
+- name: Permission Configuration
+  tags: permission
+  block:
+    - name: Check if groups exist in jails
+      ansible.builtin.command: "bastille cmd {{ item.0.name }} pw groupshow {{ item.1.name }}"
+      register: jail_group_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ jails | subelements('new_groups', skip_missing=True) }}"
 
-- name: Add groups in jails
-  ansible.builtin.command: >-
-    bastille cmd {{ item.item.0.name }} pw groupadd
-    -n {{ item.item.1.name }} -g {{ item.item.1.gid }}
-  loop: "{{ jail_group_check.results }}"
-  when: item.rc != 0
+    - name: Add groups in jails
+      ansible.builtin.command: >-
+        bastille cmd {{ item.item.0.name }} pw groupadd
+        -n {{ item.item.1.name }} -g {{ item.item.1.gid }}
+      loop: "{{ jail_group_check.results }}"
+      when: item.rc != 0
 
-- name: Check if users exist in jails
-  ansible.builtin.command: "bastille cmd {{ item.0.name }} pw usershow {{ item.1.name }}"
-  register: jail_user_check
-  failed_when: false
-  changed_when: false
-  loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
+    - name: Check if users exist in jails
+      ansible.builtin.command: "bastille cmd {{ item.0.name }} pw usershow {{ item.1.name }}"
+      register: jail_user_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
 
-- name: Add users in jails
-  ansible.builtin.command: >-
-    bastille cmd {{ item.item.0.name }} pw useradd
-    -n {{ item.item.1.name }}
-    -u {{ item.item.1.uid }}
-    -g {{ item.item.1.gid }}
-    -G wheel
-    -c {{ item.item.1.name | quote }}
-    -m
-    -s /bin/tcsh
-  loop: "{{ jail_user_check.results }}"
-  when: item.rc != 0
+    - name: Add users in jails
+      ansible.builtin.command: >-
+        bastille cmd {{ item.item.0.name }} pw useradd
+        -n {{ item.item.1.name }}
+        -u {{ item.item.1.uid }}
+        -g {{ item.item.1.gid }}
+        -G wheel
+        -c {{ item.item.1.name | quote }}
+        -m
+        -s /bin/tcsh
+      loop: "{{ jail_user_check.results }}"
+      when: item.rc != 0
 
-- name: Create home directories in jail rootfs
-  ansible.builtin.file:
-    path: "/usr/local/bastille/jails/{{ item.0.name }}/root/home/{{ item.1.name }}"
-    owner: "{{ item.1.uid }}"
-    group: "{{ item.1.gid }}"
-    mode: "0700"
-    state: directory
-  loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
+    - name: Create home directories in jail rootfs
+      ansible.builtin.file:
+        path: "/usr/local/bastille/jails/{{ item.0.name }}/root/home/{{ item.1.name }}"
+        owner: "{{ item.1.uid }}"
+        group: "{{ item.1.gid }}"
+        mode: "0700"
+        state: directory
+      loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
 
 ######################################
 # NGINX CONFIGURATION
 ######################################
 
-- name: Select nginx/HLS jail
-  ansible.builtin.set_fact:
-    hls_jail: "{{ jails | selectattr('name', 'equalto', 'hls-server') | first }}"
+- name: Nginx Configuration
+  tags: nginx
+  block:
+    - name: Select nginx/HLS jail
+      ansible.builtin.set_fact:
+        hls_jail: "{{ jails | selectattr('name', 'equalto', 'hls-server') | first }}"
 
-- name: Create video directory
-  file:
-    path: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/var/www/videos/hls"
-    state: directory
-    owner: www
-    group: www
-    mode: "0755"
-    recurse: yes
+    - name: Create video directory
+      file:
+        path: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/var/www/videos/hls"
+        state: directory
+        owner: www
+        group: www
+        mode: "0755"
+        recurse: yes
 
-- name: Ensure nginx conf.d exists in HLS jail
-  ansible.builtin.file:
-    path: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/conf.d"
-    state: directory
-    owner: root
-    group: wheel
-    mode: "0755"
+    - name: Ensure nginx conf.d exists in HLS jail
+      ansible.builtin.file:
+        path: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/conf.d"
+        state: directory
+        owner: root
+        group: wheel
+        mode: "0755"
 
-- name: Deploy nginx HLS configuration
-  ansible.builtin.template:
-    src: video-storage.conf.j2
-    dest: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/conf.d/video-storage.conf"
-    owner: root
-    group: wheel
-    mode: "0644"
-  # notify: validate and restart nginx in HLS jail
-  # notify: restart nginx in HLS jail
+    - name: Deploy basic configuration nginx
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/nginx.conf"
+        owner: root
+        group: wheel
+        mode: "0644"
 
-- name: Ensure nginx includes conf.d directory
-  ansible.builtin.lineinfile:
-    path: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/nginx.conf"
-    regexp: '^\s*include\s+/usr/local/etc/nginx/conf\.d/\*\.conf;'
-    line: "    include /usr/local/etc/nginx/conf.d/*.conf;"
-    insertbefore: "^}"
-  # notify: validate and restart nginx in HLS jail
-  notify: restart nginx in HLS jail
+    - name: Deploy nginx HLS configuration
+      ansible.builtin.template:
+        src: video-storage.conf.j2
+        dest: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/conf.d/video-storage.conf"
+        owner: root
+        group: wheel
+        mode: "0644"
+      notify: restart nginx in HLS jail
+
+    # - name: Ensure nginx includes conf.d directory
+    #   ansible.builtin.lineinfile:
+    #     path: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/nginx/nginx.conf"
+    #     regexp: '^\s*include\s+/usr/local/etc/nginx/conf\.d/\*\.conf;'
+    #     line: "    include /usr/local/etc/nginx/conf.d/*.conf;"
+    #     insertbefore: "^}"
+    #   notify: restart nginx in HLS jail
 
 ######################################
 # FINAL CONFIGURATION
 ######################################
 
-- name: Configure tcsh prompt in jail homes
-  ansible.builtin.lineinfile:
-    path: "/usr/local/bastille/jails/{{ item.0.name }}/root/home/{{ item.1.name }}/.cshrc"
-    regexp: '^\s*set\s+prompt\s*=.*'
-    line: 'set prompt="%{\033[0m%}\n%{\033[0;32m%}%n@%m%{\033[0m%}:%{\033[0;33m%}%~%{\033[0m%} %# "'
-    create: true
-    owner: "{{ item.1.uid }}"
-    group: "{{ item.1.gid }}"
-    mode: "0600"
-  loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
+- name: Basic Configuration
+  tags: basic
+  block:
+    - name: Configure tcsh prompt in jail homes
+      ansible.builtin.lineinfile:
+        path: "/usr/local/bastille/jails/{{ item.0.name }}/root/home/{{ item.1.name }}/.cshrc"
+        regexp: '^\s*set\s+prompt\s*=.*'
+        line: 'set prompt="%{\033[0m%}\n%{\033[0;32m%}%n@%m%{\033[0m%}:%{\033[0;33m%}%~%{\033[0m%} %# "'
+        create: true
+        owner: "{{ item.1.uid }}"
+        group: "{{ item.1.gid }}"
+        mode: "0600"
+      loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
+
+- name: Forcer le reload immédiat
+  ansible.builtin.meta: flush_handlers
 
 - name: Restart pf
   shell:

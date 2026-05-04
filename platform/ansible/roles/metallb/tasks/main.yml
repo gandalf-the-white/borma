@@ -92,5 +92,5 @@
         namespace: metallb-system
       spec:
         ipAddressPools:
-          - default
+          - ingress-pool
   when: groups['bootstrap'] | length  == 1

@@ -5,10 +5,10 @@ admin_ip = {{ admin_ip }}
 
 set block-policy return
 set skip on lo
+set skip on lo1
 
 scrub in on $ext_if all fragment reassemble
 
-set skip on lo1
 
 table <jails> persist {
 {% for jail in jails %}
@@ -18,7 +18,7 @@ table <jails> persist {
 
 nat on $ext_if from <jails> to any -> ($ext_if:0)
 
-rdr-anchor "rdr/*"
+# rdr-anchor "rdr/*"
 
 {% for jail in jails %}
 {% for p in jail.ports | default([]) %}
@@ -30,8 +30,15 @@ block in all
 
 pass out keep state
 
+# Trafic sortant des jails
 pass in quick on $jail_if from <jails> to any keep state
 
+# Autoriser HTTP redirigé vers le jail
+{% for jail in jails %}
+{% for p in jail.ports | default([]) %}
+pass in quick on $ext_if proto {{ p.proto }} from any to {{ jail.prefix }}.{{ jail.octet }} port {{ p.port }} keep state
+{% endfor %}
+{% endfor %}
 
-{# pass in quick on $ext_if proto tcp to ($ext_if) port 22 keep state #}
+# SSH admin uniquement
 pass in quick on $ext_if proto tcp from $admin_ip to any port $ssh_port keep state

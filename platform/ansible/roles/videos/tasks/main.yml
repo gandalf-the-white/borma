@@ -9,21 +9,21 @@
     sleep: 5
 
 - name: Download films
-  get_url:
-    url: "{{ item.url }}"
-    dest: "/usr/local/bastille/jails/{{ item.jail }}/root/var/www/videos/hls/{{ item.name }}.mov"
-  loop: "{{ videos }}"
+  ansible.builtin.get_url:
+    url: "{{ item.1.url }}"
+    dest: "/usr/local/bastille/jails/{{ item.0.jail }}/root/var/www/videos/hls/{{ item.1.name }}.mov"
+    mode: "0644"
+  loop: "{{ videos | subelements('videos') }}"
 
 - name: Copy Exec
-  template:
+  ansible.builtin.template:
     src: create-vod-hls.sh.j2
-    dest: "/usr/local/bastille/jails/{{ item.jail }}/root/var/www/videos/hls/create-vod-hls.sh"
-  loop: "{{ videos }}"
+    dest: "/usr/local/bastille/jails/{{ item.0.jail }}/root/var/www/videos/hls/create-vod-hls.sh"
+    mode: "0755"
+  loop: "{{ videos | subelements('videos') }}"
 
 - name: Execute script
-  command:
-  args:
-    chdir: "/usr/local/bastille/jails/{{ item.jail }}/root/var/www/videos/hls"
-    cmd: |
-      bash /usr/local/bastille/jails/{{ item.jail }}/root/var/www/videos/hls/create-vod-hls.sh /usr/local/bastille/jails/{{ item.jail }}/root/var/www/videos/hls/{{ item.name }}.mov
-  loop: "{{ videos }}"
+  ansible.builtin.command:
+    cmd: "./create-vod-hls.sh {{ item.1.name }}.mov"
+    chdir: "/usr/local/bastille/jails/{{ item.0.jail }}/root/var/www/videos/hls"
+  loop: "{{ videos | subelements('videos') }}"

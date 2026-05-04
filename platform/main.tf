@@ -78,31 +78,6 @@ module "storage" {
 }
 
 ####################################################################################
-## D E V
-####################################################################################
-
-module "dev" {
-  source      = "./modules/dev"
-  area        = "south"
-  prefix      = var.prefix # VLAN 200
-  bridge      = var.bridge
-  octet       = "44"
-  jail        = "45"
-  vlan        = 200
-  memory      = 4096
-  nameserver  = var.nameserver
-  target_node = var.target_node
-  clone       = "freebsd-150-tmpl"
-  size        = 30
-  storage     = var.storage
-  cloudinit   = var.cloudinit
-  proxy       = var.proxy
-  userctn     = var.userctn
-  publkeyctn  = var.publkeyctn
-  privkeyctn  = var.privkeyctn
-}
-
-####################################################################################
 ## O U T P U T
 ####################################################################################
 
@@ -114,11 +89,6 @@ output "master_south_ip_address" {
 output "hls_server_ip_address" {
   description = "Hls Server IP Address"
   value       = module.hls
-}
-
-output "dev_server_ip_address" {
-  description = "Dev Server IP Address"
-  value       = module.dev
 }
 
 output "storage_server_ip_address" {

@@ -1,21 +1,37 @@
 server {
-       listen 80 default_server;
+    listen 80 default_server;
 
 {% for jail in jails %}
-       server_name {{ jail.name }} 127.0.0.1 localhost;
+    server_name {{ jail.name }} 127.0.0.1 localhost;
 {% endfor %}
 
-       root /var/www/videos;
+    root /var/www/videos;
 
-       location /hls/ {
-            types {
-                  application/vnd.apple.mpegurl m3u8;
-                  video/mp2t ts;
-            }
+    location /hls/ {
+        types {
+            application/vnd.apple.mpegurl m3u8;
+            video/mp2t ts;
+        }
 
-            add_header Access-Control-Allow-Origin "*";
-            add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Range" always;
 
-            try_files $uri 404;
-       }
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+        try_files $uri =404;
+    }
+
+    location ~* \.m3u8$ {
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        try_files $uri =404;
+    }
+
+    location ~* \.ts$ {
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Cache-Control "public, max-age=3600" always;
+        try_files $uri =404;
+    }
 }
