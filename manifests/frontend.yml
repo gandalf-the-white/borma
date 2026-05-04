@@ -1,0 +1,43 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: bebop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: gandalfthewhite/cl-frontend:latest
+          securityContext:
+            runAsUser: 1339
+            runAsGroup: 1339
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 8000
+          args:
+            - "8000"
+            - "http://backend:9000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: bebop
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
