@@ -13,7 +13,7 @@ Although Pixie is a cloud-ready solution by default, choosing a compatible on-pr
 ** Introduction
 As this is an automated process, the setup is based directly on Terraform for infrastructure as code (IaC) and Ansible for installing each component.
 ** Step one
-[[images/TIMELINE-2026-04-27-0831.png]]
+[[images/TIMELINE-2026-05-06-0829.png]]
 
 ** K3S
 I chose k3s to simplify the installation and avoid the complexity of k8s. The tool allows for the creation of one or more masters (1 or 3 in this setup) and one or more workers.
@@ -59,7 +59,8 @@ Loki will allow me to collect the cluster logs.
 Tempo, just for collecting traces
 *** Alloy
 Alloy simply forwards the logs to Loki and traces to tempo. The dual use of collecting for both Loki and Tempo is justified by the size of the home lab. Tempo is generally paired with OpenTelemetry. While Alloy can replace OT on fairly small configurations, OT cannot replace Alloy.
-
+** Kubernetes Event Exporter
+This tool allows exporting the often missed Kubernetes events to various outputs so that they can be used for observability or alerting purposes. Although the graphic was created by Bitnami, the image is from Resmoio.
 * Storage
 ** FreeBSD
 In order to use FreeBSD as a storage server, it is necessary to understand certain aspects, such as the differences between Linux and FreeBSD export mappings, local permissions and access security. I prefer Linux for containerisation out of necessity, but I choose FreeBSD for the stability of monolithic servers, such as those used for storage or DNS. However, that's just my personal preference. Access security will be handled by FreeBSD (pf.conf), and account isolation for Network File System (NFS) will be managed via jails (bastille), with the server (nfsd, rpcbind and mountd) running on the host... and it's fun.
