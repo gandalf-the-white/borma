@@ -14,7 +14,7 @@ It's just a simple project including the script to build a /K3s/ cluster with
 
 * Proxmox
 ** Terraform Prerequisite
-The build script requires global variables.
+The build script requires global environment variables.
 + TF_VAR_publkeyctn: public key installed on the VMs
 + TF_VAR_privkeyctn: private key for accessing the VMs
 + TF_VAR_token: The token required to access Proxmox
