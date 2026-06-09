@@ -76,7 +76,7 @@ A little more complex, this template need to be built though a real image define
 + Install /cloud-init/ and enable
 + Install /openssh-portable/ and enable
 + delete the network default configuration in =/etc/rc.conf=
-+ execute =sysrc -f /boot/loader.conf autoboot delay/=/-1=
++ execute =sysrc -f /boot/loader.conf autoboot delay=/-1=
 + Install and enable pf
 
 Finally, we stop the new instance in order to convert it into a template.
