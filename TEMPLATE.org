@@ -1,0 +1,82 @@
+#+title: Template
+
+* Introduction
+I propose to explain how to build a common template on /Proxmox/. Actually, two templates must be define, the first for /Kubernetes/ architecture and finally the last for different virtual machines which don't support /KxS/.
+
+* Ubuntu
+This one will be used for /KxS/ and will be build with a simple script based on *qm*.
+** Initialize
+We take example on a Ubuntu 24.04
+#+begin_src emacs-lisp
+#!/bin/bash
+
+PROXY=""
+URL="https://cloud-images.ubuntu.com/minimal/releases/noble/release"
+IMAGE="ubuntu-24.04-minimal-cloudimg-amd64.img"
+QCOW="ubuntu-24.04-minimal-cloudimg-amd64.qcow2"
+NAME="ubuntu-2404-tmpl"
+
+ID=5002             #Unique Template id
+MEM=1024            #Basic memory
+STORAGE="local-lvm" #Name of your storage to store the template
+#+end_src
+** Set parameters
+#+begin_src emacs-lisp
+export http_proxy=$PROXY
+export https_proxy=$PROXY
+export HTTP_PROXY=$PROXY
+export HTTPS_PROXY=$PROXY
+
+if [ -f "$IMAGE" ]; then
+    rm $IMAGE
+fi
+
+if [ -f "$QCOW" ]; then
+    rm $QCOW
+fi
+
+wget -O $IMAGE $URL/$IMAGE
+
+qm list  | grep $ID
+
+if [ $? -eq 0 ]; then
+    echo "The VM $ID already exists"
+    qm destroy $ID
+fi
+
+qm create $ID --name $NAME --agent 1 --memory $MEM
+
+cp $IMAGE $QCOW
+
+qm importdisk $ID $QCOW $STORAGE
+
+qm set $ID --scsihw virtio-scsi-pci --scsi0 $STORAGE:vm-$ID-disk-0
+
+qm set $ID --tags Template
+
+qm set $ID --ide2 $STORAGE:cloudinit
+
+qm set $ID --boot c --bootdisk scsi0
+
+qm set $ID --serial0 socket --vga std
+#+end_src
+** Convert
+Finally, we just have to convert this new image as a template
+#+begin_src emacs-lisp
+qm template $ID
+#+end_src
+Here is the [[./template.sh][final script]], we just need to modify the storage.
+
+* FreeBSD
+** Process
+A little more complex, this template need to be built though a real image defined with different smart options.
++ Create a simple template by using the [[./freebsd.sh][script]]
++ Create an instance of this new template in order to profile a new one
++ Install /qemu-guest-agent/ and enable
++ Install /cloud-init/ and enable
++ Install /openssh-portable/ and enable
++ delete the network default configuration in =/etc/rc.conf=
++ execute =sysrc -f /boot/loader.conf autoboot delay/=/-1=
++ Install and enable pf
+
+Finally, we stop the new instance in order to convert to a template
