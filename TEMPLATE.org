@@ -79,4 +79,4 @@ A little more complex, this template need to be built though a real image define
 + execute =sysrc -f /boot/loader.conf autoboot delay/=/-1=
 + Install and enable pf
 
-Finally, we stop the new instance in order to convert to a template
+Finally, we stop the new instance in order to convert it into a template.
