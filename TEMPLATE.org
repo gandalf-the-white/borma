@@ -71,7 +71,7 @@ Here is the [[./scripts/template.sh][final script]], we just need to modify the 
 ** Process
 A little more complex, this template need to be built though a real image defined with different smart options.
 + Create a simple template by using this [[./scripts/freebsd.sh][script]]
-+ Create an instance of this new template in order to profile a new one
++ Create an instance with this new temporary template in order to profile a new one
 + Install /qemu-guest-agent/ and enable
 + Install /cloud-init/ and enable
 + Install /openssh-portable/ and enable
