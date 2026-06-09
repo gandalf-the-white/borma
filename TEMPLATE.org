@@ -65,12 +65,12 @@ Finally, we just have to convert this new image as a template
 #+begin_src emacs-lisp
 qm template $ID
 #+end_src
-Here is the [[./template.sh][final script]], we just need to modify the storage.
+Here is the [[./scripts/template.sh][final script]], we just need to modify the storage.
 
 * FreeBSD
 ** Process
 A little more complex, this template need to be built though a real image defined with different smart options.
-+ Create a simple template by using the [[./freebsd.sh][script]]
++ Create a simple template by using the [[./scripts/freebsd.sh][script]]
 + Create an instance of this new template in order to profile a new one
 + Install /qemu-guest-agent/ and enable
 + Install /cloud-init/ and enable
