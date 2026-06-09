@@ -34,6 +34,7 @@ To speed up the boot process, I enable
 #+begin_src emacs-lisp
 $ sysrc -f /boot/loader.conf autoboot_delay=-1
 #+end_src
+Read this [[./TEMPLATE.org][readme]] for more information
 ** Pf configuration
 #+begin_src emacs-lisp
 ext_if="eth0"
