@@ -7,7 +7,7 @@ module "south" {
   area        = "south"
   masters     = var.masters
   workers     = var.workers
-  nbmasters   = 1
+  nbmasters   = 3
   nbworkers   = 1
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
