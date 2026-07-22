@@ -31,12 +31,12 @@ Three services are launched automatically:
 + pf
 + pflog
 To speed up the boot process, I enable
-#+begin_src emacs-lisp
+#+begin_src shell
 $ sysrc -f /boot/loader.conf autoboot_delay=-1
 #+end_src
 Read this [[./TEMPLATE.org][readme]] for more information
 ** Pf configuration
-#+begin_src emacs-lisp
+#+begin_src yaml
 ext_if="eth0"
 
 set block-policy return
