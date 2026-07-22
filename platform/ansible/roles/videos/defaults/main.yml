@@ -7,8 +7,8 @@ jail: "jail-hls"
 videos:
   - jail: "hls-server"
     videos:
-      - name: "tears"
-        url: "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov"
+      - name: "real"
+        url: "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/Cycles_Demoreel_2015.mov"
 
-      # - name: "real"
-      #   url: "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/Cycles_Demoreel_2015.mov"
+      # - name: "tears"
+      #   url: "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_1080p.mov"

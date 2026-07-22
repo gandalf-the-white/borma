@@ -3,6 +3,16 @@
 - name: Bastille installation
   tags: bastille
   block:
+    - name: Add lines proxy
+      ansible.builtin.blockinfile:
+        path: /usr/local/etc/pkg.conf
+        marker: ";; {mark} ANSIBLE MANAGED PKG"
+        block: |
+          PKG_ENV {
+              http_proxy: {{ http_proxy }},
+              https_proxy: {{ http_proxy }},
+          }
+
     - name: Set runtime hostname
       ansible.builtin.hostname:
         name: "{{ hostname }}"
