@@ -48,7 +48,7 @@ module "hls" {
   userctn     = var.userctn
   publkeyctn  = var.publkeyctn
   privkeyctn  = var.privkeyctn
-  adminip     = "10.9.0.30"
+  adminip     = var.adminip
 }
 
 ####################################################################################
@@ -74,7 +74,7 @@ module "storage" {
   userctn     = var.userctn
   publkeyctn  = var.publkeyctn
   privkeyctn  = var.privkeyctn
-  adminip     = "10.9.0.30"
+  adminip     = var.adminip
 }
 
 ####################################################################################

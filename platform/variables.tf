@@ -14,6 +14,7 @@ variable "target_node" { default = "proxmox" }
 variable "storage" { default = "local-lvm" }
 
 variable "prefix" { default = "192.188.200" }
+variable "adminip" { default = "10.9.0.30" }
 
 variable "masters" {
   type = list(object({
