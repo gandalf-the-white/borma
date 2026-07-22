@@ -65,7 +65,7 @@ This tool allows exporting the often missed Kubernetes events to various outputs
 ** FreeBSD
 In order to use FreeBSD as a storage server, it is necessary to understand certain aspects, such as the differences between Linux and FreeBSD export mappings, local permissions and access security. I prefer Linux for containerisation out of necessity, but I choose FreeBSD for the stability of monolithic servers, such as those used for storage or DNS. However, that's just my personal preference. Access security will be handled by FreeBSD (pf.conf), and account isolation for Network File System (NFS) will be managed via jails (bastille), with the server (nfsd, rpcbind and mountd) running on the host... and it's fun.
 ** Exports
-#+begin_src emacs-lisp
+#+begin_src yaml
 /srv/nfs/spike -maproot=spike -network 192.188.200.0 -mask 255.255.255.0
 /srv/nfs/faye -maproot=faye -network 192.188.200.0 -mask 255.255.255.0
 /srv/nfs/crew -network 192.188.200.0 -mask 255.255.255.0
@@ -117,7 +117,7 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:909
   #+end_src
 + Remote
   Just to acces on VMs port such as 3000 taking account the wireguard VPN.
-  #+begin_src
+  #+begin_src shell
 ssh -L 3000:127.0.0.1:3000 spike@192.188.200.101 -i ~/.ssh/id_ed25519_proxmox
   #+end_src
  or to prometheus
@@ -136,7 +136,7 @@ kube_pod_info
   #+end_src
 ** Loki check
 + Loki Logs kube-system
-#+begin_src shell
+#+begin_src yaml
 {namespace="kube-system"}
 #+end_src
 + Generate traffic
@@ -159,7 +159,7 @@ kubectl run trace-test --rm -it \
   --traces 20
  #+end_src
 + Tempo explore
-  #+begin_src shell
+  #+begin_src yaml
 service.name="telemetrygen"
   #+end_src
 ** Cilium check
@@ -173,6 +173,6 @@ kubectl run curl-test --rm -it --image=curlimages/curl --restart=Never -- \
   sh -c 'for i in $(seq 1 20); do curl -sk https://kubernetes.default.svc; done'
   #+end_src
 + Cilium/Hubble
-  #+begin_src shell
+  #+begin_src yaml
 {__name__=~"cilium_.*"}
   #+end_src
