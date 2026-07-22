@@ -11,7 +11,7 @@ module "south" {
   nbworkers   = 1
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
-  vlan        = 200
+  vlan        = var.vlan
   nameserver  = var.nameserver
   target_node = var.target_node
   clone       = "debian-13-tmpl"
@@ -36,7 +36,7 @@ module "hls" {
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   octet       = "54"
-  vlan        = 200
+  vlan        = var.vlan
   memory      = 4096
   nameserver  = var.nameserver
   target_node = var.target_node
@@ -62,7 +62,7 @@ module "storage" {
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
   octet       = "64"
-  vlan        = 200
+  vlan        = var.vlan
   memory      = 4096
   nameserver  = var.nameserver
   target_node = var.target_node
