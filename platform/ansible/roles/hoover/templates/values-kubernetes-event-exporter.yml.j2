@@ -1,0 +1,51 @@
+global:
+  security:
+    allowInsecureImages: true
+
+image:
+  registry: ghcr.io
+  repository: resmoio/kubernetes-event-exporter
+  tag: v1.7
+  pullPolicy: IfNotPresent
+
+config:
+  logLevel: info
+  logFormat: json
+  clusterName: "{{ cluster_name | default('kubernetes') }}"
+
+  receivers:
+    - name: dump
+      file:
+        path: /dev/stdout
+        layout:
+          time: "{{ '{{ .GetTimestampISO8601 }}' }}"
+          type: "{{ '{{ .Type }}' }}"
+          reason: "{{ '{{ .Reason }}' }}"
+          message: "{{ '{{ .Message }}' }}"
+          count: "{{ '{{ .Count }}' }}"
+          namespace: "{{ '{{ .Namespace }}' }}"
+          kind: "{{ '{{ .InvolvedObject.Kind }}' }}"
+          name: "{{ '{{ .InvolvedObject.Name }}' }}"
+          uid: "{{ '{{ .InvolvedObject.UID }}' }}"
+          apiVersion: "{{ '{{ .InvolvedObject.APIVersion }}' }}"
+          resourceVersion: "{{ '{{ .InvolvedObject.ResourceVersion }}' }}"
+          component: "{{ '{{ .Source.Component }}' }}"
+          host: "{{ '{{ .Source.Host }}' }}"
+
+  route:
+    routes:
+      - match:
+          - receiver: dump
+
+rbac:
+  create: true
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: "{{ monitoring_namespace }}"
+    interval: 30s
+    endpoints:
+      - path: /metrics
+
