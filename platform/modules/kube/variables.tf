@@ -17,3 +17,4 @@ variable "bridge" {}
 variable "nameserver" {}
 variable "cloudinit" {}
 variable "proxy" {}
+variable "noproxy" {}

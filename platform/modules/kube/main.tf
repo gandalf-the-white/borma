@@ -172,7 +172,7 @@ resource "local_file" "playbook" {
   content = templatefile("${path.module}/manifests/playbook-template.yaml",
     {
       proxy                     = var.proxy
-      noproxy                   = "10.233.64.0/18,10.233.0.0/18,${var.prefix}.0/24"
+      noproxy                   = "${var.noproxy},${var.prefix}.0/24"
       kubeadm_init_master       = proxmox_vm_qemu.master_server[0].name
       advertise_address         = "${var.prefix}.${var.masters[0].octet}"
       kubeadm_master_group_name = "master_nodes"

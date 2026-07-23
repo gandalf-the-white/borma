@@ -7,6 +7,7 @@ variable "fqdn_pmox" {}
 variable "bridge" { default = "vmbr3" }
 
 variable "proxy" { default = "" }
+variable "noproxy" { default = "127.0.0.1,localhost,10.0.0.0/8,10.42.0.0/16,10.43.0.0/16" }
 variable "nameserver" { default = "192.168.68.1" }
 
 variable "cloudinit" { default = "local" }

@@ -20,6 +20,7 @@ module "south" {
   store       = "64"
   cloudinit   = var.cloudinit
   proxy       = var.proxy
+  noproxy     = var.noproxy
   userctn     = var.userctn
   publkeyctn  = var.publkeyctn
   privkeyctn  = var.privkeyctn
