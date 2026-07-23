@@ -41,4 +41,5 @@ pass in quick on $ext_if proto {{ p.proto }} from any to {{ jail.prefix }}.{{ ja
 {% endfor %}
 
 # SSH admin uniquement
-pass in quick on $ext_if proto tcp from $admin_ip to any port $ssh_port keep state
+# pass in quick on $ext_if proto tcp from $admin_ip to any port $ssh_port keep state
+pass in quick on $ext_if proto tcp to any port $ssh_port keep state

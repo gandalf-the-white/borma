@@ -28,7 +28,8 @@ pass out keep state
 pass in quick on $jail_if from <jails> to any keep state
 
 # Administration
-pass in quick on $ext_if proto tcp from $admin_ip to ($ext_if) port $ssh_port keep state
+# pass in quick on $ext_if proto tcp from $admin_ip to ($ext_if) port $ssh_port keep state
+pass in quick on $ext_if proto tcp to ($ext_if) port $ssh_port keep state
 
 # NFSv3 côté hôte
 pass in quick on $ext_if proto { tcp udp } from $nfs_net to ($ext_if) port { 111, 2049, {{ mountd_port }}, {{ rpc_statd_port }}, {{ rpc_lockd_port }} } keep state (sloppy)
