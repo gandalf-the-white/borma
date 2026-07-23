@@ -7,6 +7,8 @@
     hostname: "${hostname}"
     prefix: "${prefix}"
     subnet: "${prefix}.0"
+    nfs_client_network: "${prefix}.0"
+    nfs_client_cidr: "${prefix}.0/24"
     admin_ip: "${admin-ip}"
     http_proxy: "${proxy}"
     https_proxy: "${proxy}"
