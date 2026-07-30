@@ -55,11 +55,11 @@
   copy:
     dest: /etc/sysctl.d/watch.conf
     content: |
-      fs.inotify.max_user_watches=10485760
-      fs.aio-max-nr=10485760
-      fs.file-max=10485760
-      kernel.pid_max=10485760
-      kernel.threads-max=10485760
+      fs.inotify.max_user_instances=8192
+      fs.inotify.max_user_watches=524288
+      fs.aio-max-nr=524288
+      fs.file-max=524288
+      kernel.threads-max=524288
 
 - name: Apply sysctl
   command: sysctl --system
