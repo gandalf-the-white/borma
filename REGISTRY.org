@@ -1,0 +1,79 @@
+#+title: Registry
+
+* Introduction
+Just to simplify the architecture, a private registry is built on /FreeBSD/ inside a jail without any security stack.
+
+* Process
+** images
+I take example on my computer (Mac). Here is the different images locally stored .
+#+begin_src shell
+$ docker images
+IMAGE                                                   ID             DISK USAGE   CONTENT SIZE   EXTRA
+gandalfthewhite/cl-backend:latest                       9cce73220e45       23.6MB         23.6MB
+gandalfthewhite/cl-frontend:latest                      2ad831c32b64       25.4MB         25.4MB
+gandalfthewhite/cl-oracle:latest                        ebc6ab54c02d         20MB           20MB
+gandalfthewhite/cl-proxy:latest                         884d34ca3d0d       20.1MB         20.1MB
+#+end_src
+** Permission
+First of all, we have to enable access on the insecure registry
+#+begin_src yaml
+{
+  "builder": {
+    "gc": {
+      "defaultKeepStorage": "20GB",
+      "enabled": true
+    }
+  },
+  "experimental": false,
+  "insecure-registries": [
+    "192.188.200.67:5000"
+  ]
+}
+#+end_src
+We don't forget to restart our docker desktop
+** tag and push
+We add a new tag on the images and finally push the images on the registry.
+#+begin_src shell
+for image in cl-backend cl-frontend cl-oracle cl-proxy; do
+  docker tag \
+    "gandalfthewhite/${image}:latest" \
+    "192.188.200.67:5000/gandalfthewhite/${image}:latest"
+
+  docker push \
+    "192.188.200.67:5000/gandalfthewhite/${image}:latest"
+done
+#+end_src
+** Check
+Just to check if the process was successful. First of all on local computer
+#+begin_src shell
+$ docker images
+                                                                                                  i Info →   U  In Use
+IMAGE                                                    ID             DISK USAGE   CONTENT SIZE   EXTRA
+192.188.200.67:5000/gandalfthewhite/cl-backend:latest    9cce73220e45       23.6MB         23.6MB
+192.188.200.67:5000/gandalfthewhite/cl-frontend:latest   2ad831c32b64       25.4MB         25.4MB
+192.188.200.67:5000/gandalfthewhite/cl-oracle:latest     ebc6ab54c02d         20MB           20MB
+192.188.200.67:5000/gandalfthewhite/cl-proxy:latest      884d34ca3d0d       20.1MB         20.1MB
+gandalfthewhite/cl-backend:latest                        9cce73220e45       23.6MB         23.6MB
+gandalfthewhite/cl-frontend:latest                       2ad831c32b64       25.4MB         25.4MB
+gandalfthewhite/cl-oracle:latest                         ebc6ab54c02d         20MB           20MB
+gandalfthewhite/cl-proxy:latest                          884d34ca3d0d       20.1MB         20.1MB
+#+end_src
+And finally on the private registry
+#+begin_src shell
+curl http://192.188.200.67:5000/v2/_catalog | jq .
+{
+    "repositories":[
+        "gandalfthewhite/cl-backend",
+        "gandalfthewhite/cl-frontend",
+        "gandalfthewhite/cl-oracle",
+        "gandalfthewhite/cl-proxy"
+    ]
+}
+#+end_src
+** Kubernetes
+To reference this new private registry, we just have to write this part
+#+begin_src yaml
+containers:
+  - name: backend
+    image: 192.188.200.67:5000/gandalfthewhite/cl-backend:latest
+#+end_src

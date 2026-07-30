@@ -7,7 +7,7 @@ module "south" {
   area        = "south"
   masters     = var.masters
   workers     = var.workers
-  nbmasters   = 3
+  nbmasters   = 1
   nbworkers   = 1
   prefix      = var.prefix # VLAN 200
   bridge      = var.bridge
@@ -79,6 +79,32 @@ module "storage" {
 }
 
 ####################################################################################
+## P R I V A T E   R E G I S T R Y
+####################################################################################
+
+module "registry" {
+  source      = "./modules/registry"
+  name        = "registry-server"
+  area        = "south"
+  prefix      = var.prefix # VLAN 200
+  bridge      = var.bridge
+  octet       = "67"
+  vlan        = var.vlan
+  memory      = 4096
+  nameserver  = var.nameserver
+  target_node = var.target_node
+  clone       = "freebsd-150-tmpl"
+  size        = 30
+  storage     = var.storage
+  cloudinit   = var.cloudinit
+  proxy       = var.proxy
+  userctn     = var.userctn
+  publkeyctn  = var.publkeyctn
+  privkeyctn  = var.privkeyctn
+  adminip     = var.adminip
+}
+
+####################################################################################
 ## O U T P U T
 ####################################################################################
 
@@ -95,4 +121,9 @@ output "hls_server_ip_address" {
 output "storage_server_ip_address" {
   description = "Storage Server IP Address"
   value       = module.storage
+}
+
+output "registry_server_ip_address" {
+  description = "Registry Server IP Address"
+  value       = module.registry
 }
