@@ -57,9 +57,9 @@
     content: |
       fs.inotify.max_user_instances=8192
       fs.inotify.max_user_watches=524288
-      fs.aio-max-nr=524288
-      fs.file-max=524288
-      kernel.threads-max=524288
+      # fs.aio-max-nr=524288
+      # fs.file-max=524288
+      # kernel.threads-max=524288
 
 - name: Apply sysctl
   command: sysctl --system

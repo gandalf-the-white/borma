@@ -1,0 +1,10 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/demo
+kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+online_namespace: onlineboutique
+
+repos:
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts

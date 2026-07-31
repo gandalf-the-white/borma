@@ -1,0 +1,35 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for ansible/roles/registry
+packages:
+  - bastille
+  - tree
+  - pftop
+
+ext_if: eth0
+bastille_interface: bastille0
+bastille_release: "15.0-RELEASE"
+
+jails:
+  - name: registry-server
+    octet: "220"
+    prefix: "10.17.89"
+    subnet: "10.17.89.0/24"
+    packages:
+      - htop
+      - tree
+      - docker-registry
+    daemons:
+      - docker_registry
+    services:
+      - docker_registry
+    ports:
+      - port: 5000
+        proto: tcp
+    accounts:
+      - name: spike
+        uid: 1010
+        gid: 1010
+    new_groups:
+      - name: spike
+        gid: 1010

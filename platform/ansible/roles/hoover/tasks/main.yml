@@ -5,10 +5,12 @@
   wait_for:
     path: /etc/rancher/k3s/k3s.yaml
     timeout: 60
+  tags: step1
 
 - name: Set kubeconfig env
   set_fact:
     kubeconfig: /etc/rancher/k3s/k3s.yaml
+  tags: step1
 
 - name: Wait for Kubernetes API
   command: kubectl get nodes
@@ -18,14 +20,17 @@
   retries: 10
   delay: 5
   until: result.rc == 0
+  tags: step1
 
 - name: Verify cluster access
   command: kubectl get nodes
   changed_when: false
+  tags: step1
 
 - name: Verify NFS StorageClass exists
   command: kubectl get storageclass {{ storage_class }}
   changed_when: false
+  tags: step1
 
 - name: Create monitoring namespace
   kubernetes.core.k8s:
@@ -34,12 +39,14 @@
     kind: Namespace
     name: "{{ monitoring_namespace }}"
     state: present
+  tags: step1
 
 - name: Add Helm repos
   kubernetes.core.helm_repository:
     name: "{{ item.name }}"
     repo_url: "{{ item.url }}"
   loop: "{{ repos }}"
+  tags: step1
 
 - name: Deploy kube-prometheus-stack
   kubernetes.core.helm:
@@ -52,18 +59,19 @@
     values: "{{ lookup('template', 'templates/values-prometheus.yml.j2') | from_yaml }}"
     wait: true
     timeout: 10m
+  tags: step1
 
 - name: Verify Prometheus stack pods
   command: kubectl -n {{ monitoring_namespace }} get pods
   changed_when: false
-  tags:
-    - step1
+  tags: step1
 
 - name: Vérifier que la CRD ServiceMonitor existe
   command: kubectl get crd servicemonitors.monitoring.coreos.com
   register: servicemonitor_crd
   changed_when: false
   failed_when: servicemonitor_crd.rc != 0
+  tags: step1
 
 - name: Upgrade Cilium and Hubble metrics
   kubernetes.core.helm:
@@ -78,23 +86,28 @@
     wait: true
     timeout: 10m
   when: inventory_hostname in groups['bootstrap']
+  tags: step2
 
 - name: Vérifier les ServiceMonitor Cilium/Hubble
   command: kubectl get servicemonitor -A
   register: cilium_servicemonitors
   changed_when: false
+  tags: step2
 
 - name: Afficher les ServiceMonitor Cilium/Hubble
   debug:
     msg: "{{ cilium_servicemonitors.stdout_lines | select('search', 'cilium|hubble') | list }}"
+  tags: step2
 
 - name: Redémarrer Cilium pour appliquer proprement les métriques
   command: kubectl -n kube-system rollout restart daemonset/cilium
   changed_when: true
+  tags: step2
 
 - name: Attendre que Cilium soit prêt
   command: kubectl -n kube-system rollout status daemonset/cilium --timeout=180s
   changed_when: false
+  tags: step2
 
 - name: Deploy Loki
   kubernetes.core.helm:
@@ -106,6 +119,7 @@
     values: "{{ lookup('template', 'templates/values-loki.yml.j2') | from_yaml }}"
     wait: true
     timeout: 10m
+  tags: step3
 
 - name: Deploy Alloy
   kubernetes.core.helm:
@@ -116,6 +130,7 @@
     values: "{{ lookup('template', 'templates/values-alloy.yml.j2') | from_yaml }}"
     wait: true
     timeout: 10m
+  tags: step3
 
 - name: Deploy Tempo
   kubernetes.core.helm:
@@ -128,6 +143,7 @@
     values: "{{ lookup('template', 'templates/values-tempo.yml.j2') | from_yaml }}"
     wait: true
     timeout: 20m
+  tags: step3
 
 # - name: Deploy OpenTelemetry Collector
 #   kubernetes.core.helm:
@@ -152,7 +168,9 @@
     values: "{{ lookup('template', 'templates/values-kubernetes-event-exporter.yml.j2') | from_yaml }}"
     wait: true
     timeout: 5m
+  tags: step3
 
 - name: Final verification
   command: kubectl -n {{ monitoring_namespace }} get pods,pvc,svc
   changed_when: false
+  tags: step3

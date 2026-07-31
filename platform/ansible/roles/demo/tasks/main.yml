@@ -1,0 +1,55 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/demo
+
+- name: Wait for kubeconfig
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 60
+
+- name: Set kubeconfig env
+  set_fact:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for Kubernetes API
+  command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: result
+  retries: 10
+  delay: 5
+  until: result.rc == 0
+
+- name: Verify cluster access
+  command: kubectl get nodes
+  changed_when: false
+
+- name: Create monitoring namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ online_namespace }}"
+    state: present
+
+- name: Add Helm repos
+  kubernetes.core.helm_repository:
+    name: "{{ item.name }}"
+    repo_url: "{{ item.url }}"
+  loop: "{{ repos }}"
+
+- name: Deploy opentelemetry stack
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    name: opentelemetry-demo
+    chart_ref: open-telemetry/opentelemetry-demo
+    release_namespace: "{{ online_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    values: "{{ lookup('template', 'templates/values-opentelemetry-demo.yml.j2') | from_yaml }}"
+    wait: true
+    timeout: 10m
+
+- name: Verify OpenTelemetry stack pods
+  command: kubectl -n {{ online_namespace }} get pods
+  changed_when: false

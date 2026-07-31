@@ -1,0 +1,36 @@
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
+
+jaeger:
+  enabled: false
+
+opensearch:
+  enabled: false
+
+opentelemetry-collector:
+  config:
+    exporters:
+      otlphttp/prometheus:
+        endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
+        sending_queue:
+          enabled: true
+        retry_on_failure:
+          enabled: true
+
+      otlp/jaeger:
+        endpoint: tempo.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+
+      otlphttp/loki:
+        endpoint: http://loki.monitoring.svc.cluster.local:3100/otlp
+
+    service:
+      pipelines:
+        logs:
+          exporters:
+            - otlphttp/loki
+            - debug

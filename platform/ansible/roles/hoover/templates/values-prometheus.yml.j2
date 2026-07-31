@@ -32,6 +32,7 @@ grafana:
 prometheus:
   prometheusSpec:
     retention: 30d
+    enableOTLPReceiver: true
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
     serviceMonitorNamespaceSelector: {}

@@ -1,0 +1,226 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/registry
+- name: Bastille installation
+  tags: bastille
+  block:
+    - name: Add lines proxy
+      ansible.builtin.blockinfile:
+        path: /usr/local/etc/pkg.conf
+        marker: ";; {mark} ANSIBLE MANAGED PKG"
+        block: |
+          PKG_ENV {
+              http_proxy: {{ http_proxy }},
+              https_proxy: {{ http_proxy }},
+          }
+
+    - name: Set runtime hostname
+      ansible.builtin.hostname:
+        name: "{{ hostname }}"
+
+    - name: Persist hostname in rc.conf
+      community.general.sysrc:
+        name: hostname
+        value: "{{ hostname }}"
+
+    - name: Install host packages
+      community.general.pkgng:
+        name: "{{ packages }}"
+        state: present
+
+    - name: Enable bastille at boot
+      community.general.sysrc:
+        name: bastille_enable
+        value: "YES"
+
+    - name: Configure Bastille loopback clone
+      community.general.sysrc:
+        name: cloned_interfaces
+        value: lo1
+
+    - name: Rename lo1 to bastille0
+      community.general.sysrc:
+        name: ifconfig_lo1_name
+        value: "{{ bastille_interface }}"
+
+    - name: Bring cloned interfaces up
+      ansible.builtin.command: service netif cloneup
+      changed_when: false
+
+    - name: Bootstrap Bastille release
+      ansible.builtin.command: "bastille bootstrap {{ bastille_release }}"
+      args:
+        creates: "/usr/local/bastille/releases/{{ bastille_release }}"
+
+######################################
+# PF CONFIGURATION
+######################################
+
+- name: PF configuration
+  tags: pf
+  block:
+    - name: Deploy pf.conf
+      ansible.builtin.template:
+        src: pf.conf.j2
+        dest: /etc/pf.conf
+        owner: root
+        group: wheel
+        mode: "0644"
+      # notify: reload pf
+
+    - name: Check if pf kernel module is loaded
+      ansible.builtin.command: kldstat -n pf
+      register: pf_loaded
+      failed_when: false
+      changed_when: false
+
+    - name: Load pf kernel module
+      ansible.builtin.command: kldload pf
+      when: pf_loaded.rc != 0
+
+    - name: Enable pf at boot
+      community.general.sysrc:
+        name: pf_enable
+        value: "YES"
+
+    - name: Validate pf.conf
+      ansible.builtin.command: pfctl -vnf /etc/pf.conf
+      changed_when: false
+
+    - name: Ensure pf is running
+      ansible.builtin.service:
+        name: pf
+        state: started
+
+###################################################
+# CREATE JAILS
+###################################################
+
+- name: Jails management
+  tags: jails
+  block:
+    - name: Create jails
+      ansible.builtin.command: >-
+        bastille create {{ item.name }} {{ bastille_release }}
+        {{ item.prefix }}.{{ item.octet }} {{ bastille_interface }}
+      loop: "{{ jails }}"
+      args:
+        creates: "/usr/local/bastille/jails/{{ item.name }}"
+
+    - name: Copy host resolv.conf into jails
+      ansible.builtin.copy:
+        src: /etc/resolv.conf
+        dest: "/usr/local/bastille/jails/{{ item.name }}/root/etc/resolv.conf"
+        remote_src: true
+        owner: root
+        group: wheel
+        mode: "0644"
+      loop: "{{ jails }}"
+
+    - name: Configure jail pkg proxy
+      ansible.builtin.blockinfile:
+        path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc/pkg.conf"
+        create: true
+        marker: "# {mark} ANSIBLE MANAGED PKG PROXY"
+        block: |
+          PKG_ENV: {
+            HTTP_PROXY  : "{{ http_proxy | default('') }}"
+            HTTPS_PROXY : "{{ https_proxy | default('') }}"
+          }
+      loop: "{{ jails }}"
+      when: http_proxy is defined or https_proxy is defined
+
+    - name: Ensure jail pkg configuration directory exists
+      ansible.builtin.file:
+        path: "/usr/local/bastille/jails/{{ item.name }}/root/usr/local/etc"
+        state: directory
+        owner: root
+        group: wheel
+        mode: "0755"
+      loop: "{{ jails }}"
+
+    - name: Update pkg catalog in jails
+      ansible.builtin.command: "bastille cmd {{ item.name }} env ASSUME_ALWAYS_YES=yes pkg update"
+      loop: "{{ jails }}"
+      # changed_when: false
+      changed_when: "'No updates' not in jail_pkg_update.stdout"
+      register: jail_pkg_update
+      failed_when: jail_pkg_update.rc != 0
+######################################
+# DAEMON CONFIGURATION
+######################################
+
+- name: Daemon configuration
+  tags: daemon
+  block:
+    - name: Install packages in jails
+      ansible.builtin.command: "bastille pkg {{ item.0.name }} install -y {{ item.1 }}"
+      loop: "{{ jails | subelements('packages', skip_missing=True) }}"
+      register: jail_pkg_install
+      changed_when: "'already installed' not in jail_pkg_install.stdout"
+
+    - name: Enable daemons in jails
+      ansible.builtin.command: "bastille sysrc {{ item.0.name }} {{ item.1 }}_enable=YES"
+      loop: "{{ jails | subelements('daemons', skip_missing=True) }}"
+
+######################################
+# REGISTRY CONFIGURATION
+######################################
+
+- name: Registry Configuration
+  tags: registry
+  block:
+    - name: Select registry jail
+      ansible.builtin.set_fact:
+        hls_jail: "{{ jails | selectattr('name', 'equalto', 'registry-server') | first }}"
+
+    - name: Configuration
+      ansible.builtin.copy:
+        dest: "/usr/local/bastille/jails/{{ hls_jail.name }}/root/usr/local/etc/docker-registry/config.yml"
+        backup: true
+        content: |
+          version: 0.1
+          log:
+            fields:
+              service: registry
+          storage:
+            cache:
+              blobdescriptor: inmemory
+            filesystem:
+              rootdirectory: /var/lib/registry
+          http:
+            addr: :5000
+            headers:
+              X-Content-Type-Options: [nosniff]
+          health:
+            storagedriver:
+              enabled: true
+              interval: 10s
+              threshold: 3
+      notify: restart docker registry
+
+######################################
+# FINAL CONFIGURATION
+######################################
+
+- name: Basic Configuration
+  tags: basic
+  block:
+    - name: Configure tcsh prompt in jail homes
+      ansible.builtin.lineinfile:
+        path: "/usr/local/bastille/jails/{{ item.0.name }}/root/home/{{ item.1.name }}/.cshrc"
+        regexp: '^\s*set\s+prompt\s*=.*'
+        line: 'set prompt="%{\033[0m%}\n%{\033[0;32m%}%n@%m%{\033[0m%}:%{\033[0;33m%}%~%{\033[0m%} %# "'
+        create: true
+        owner: "{{ item.1.uid }}"
+        group: "{{ item.1.gid }}"
+        mode: "0600"
+      loop: "{{ jails | subelements('accounts', skip_missing=True) }}"
+
+- name: Forcer le reload immédiat
+  ansible.builtin.meta: flush_handlers
+
+- name: Restart pf
+  shell:
+    cmd: >
+      (( sleep 5; nohup service pf restart 1>/dev/null 2>&1 ) & )

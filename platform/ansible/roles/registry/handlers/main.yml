@@ -1,0 +1,17 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for ansible/roles/registry
+- name: reload pf
+  ansible.builtin.command: pfctl -f /etc/pf.conf
+
+- name: validate nginx configuration in HLS jail
+  ansible.builtin.command: "bastille cmd {{ hls_jail.name }} nginx -t"
+  changed_when: false
+  listen: restart nginx in HLS jail
+
+- name: restart nginx in HLS jail
+  ansible.builtin.command: "bastille service {{ hls_jail.name }} nginx restart"
+  listen: restart nginx in HLS jail
+
+- name: restart docker registry
+  ansible.builtin.command: "bastille service {{ hls_jail.name }} docker_registry restart"
