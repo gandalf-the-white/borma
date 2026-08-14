@@ -31,7 +31,7 @@ variable "masters" {
     {
       name    = "master1"
       octet   = "101"
-      memory  = 6144
+      memory  = 8192
       cores   = 2
       sockets = 1
       }, {
@@ -62,7 +62,7 @@ variable "workers" {
     {
       name    = "worker1"
       octet   = "111"
-      memory  = 6144
+      memory  = 8192
       cores   = 2
       sockets = 1
       }, {

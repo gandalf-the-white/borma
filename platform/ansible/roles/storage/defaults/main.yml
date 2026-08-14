@@ -99,4 +99,5 @@ nfs_exports:
     mode: "1777"
     owner: 65534
     group: 65533
-    export_opts: "-mapall=65534:65533 -alldirs -network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"
+    export_opts: "-maproot=root -alldirs -network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"
+    # export_opts: "-mapall=65534:65533 -alldirs -network {{ nfs_client_network }} -mask {{ nfs_client_mask }}"

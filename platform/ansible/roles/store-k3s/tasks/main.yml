@@ -45,7 +45,7 @@
           - nolock
       storageClass:
         name: "{{ storage_class_name }}"
-        defaultClass: false
+        defaultClass: true
         reclaimPolicy: Retain
         archiveOnDelete: true
         accessModes: ReadWriteMany

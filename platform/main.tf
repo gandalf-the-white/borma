@@ -24,6 +24,7 @@ module "south" {
   userctn     = var.userctn
   publkeyctn  = var.publkeyctn
   privkeyctn  = var.privkeyctn
+  depends_on  = [module.storage]
 }
 
 ####################################################################################
