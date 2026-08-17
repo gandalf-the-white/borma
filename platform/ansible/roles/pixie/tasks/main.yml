@@ -4,9 +4,14 @@
 
 - name: Install Pixie Cloud
   ansible.builtin.include_tasks: cloud.yml
+  when: pixie_install_cloud | bool
 
 - name: Configure Pixie DNS
   ansible.builtin.include_tasks: coredns.yml
+  when: pixie_install_cloud | bool
 
 - name: Install Pixie Vizier
   ansible.builtin.include_tasks: vizier.yml
+  when:
+    - pixie_install_vizier | bool
+    - pixie_deploy_key | length > 0

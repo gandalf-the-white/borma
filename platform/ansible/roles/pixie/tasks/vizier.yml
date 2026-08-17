@@ -1,114 +1,122 @@
 ---
-- name: Validate Pixie deploy key
-  ansible.builtin.assert:
-    that:
-      - pixie_deploy_key | length > 0
-    fail_msg: >
-      pixie_deploy_key must be defined.
-      Store it in Ansible Vault, not in plaintext group_vars.
+- name: Vizier Installation
+  tags: vizier
+  block:
+    - name: Validate Pixie deploy key
+      ansible.builtin.assert:
+        that:
+          - pixie_deploy_key | length > 0
+        fail_msg: >
+          pixie_deploy_key must be defined.
+          Store it in Ansible Vault, not in plaintext group_vars.
 
-- name: Add Pixie Helm repository
-  kubernetes.core.helm_repository:
-    name: pixie-operator
-    repo_url: https://artifacts.px.dev/helm_charts/operator
+    - name: Add Pixie Helm repository
+      kubernetes.core.helm_repository:
+        name: pixie-operator
+        repo_url: https://artifacts.px.dev/helm_charts/operator
 
-- name: Create Vizier namespace
-  kubernetes.core.k8s:
-    kubeconfig: "{{ pixie_kubeconfig }}"
-    name: "{{ pixie_namespace_vizier }}"
-    api_version: v1
-    kind: Namespace
-    state: present
+    - name: Create Vizier namespace
+      kubernetes.core.k8s:
+        kubeconfig: "{{ pixie_kubeconfig }}"
+        name: "{{ pixie_namespace_vizier }}"
+        api_version: v1
+        kind: Namespace
+        state: present
 
-- name: Render Pixie Vizier Helm values
-  ansible.builtin.template:
-    src: pixie-vizier-values.yml.j2
-    dest: /tmp/pixie-vizier-values.yml
-    mode: "0600"
+    - name: Render Pixie Vizier Helm values
+      ansible.builtin.template:
+        src: pixie-vizier-values.yml.j2
+        dest: /tmp/pixie-vizier-values.yml
+        mode: "0600"
 
-- name: Install Pixie Operator and Vizier
-  kubernetes.core.helm:
-    name: pixie
-    chart_ref: pixie-operator/pixie-operator-chart
-    release_namespace: "{{ pixie_namespace_vizier }}"
-    create_namespace: true
-    kubeconfig: "{{ pixie_kubeconfig }}"
-    values_files:
-      - /tmp/pixie-vizier-values.yml
-    wait: true
-    wait_timeout: 10m
-    state: present
+    - name: Install Pixie Operator and Vizier
+      kubernetes.core.helm:
+        name: pixie
+        chart_ref: pixie-operator/pixie-operator-chart
+        release_namespace: "{{ pixie_namespace_vizier }}"
+        create_namespace: true
+        kubeconfig: "{{ pixie_kubeconfig }}"
+        values_files:
+          - /tmp/pixie-vizier-values.yml
+        wait: true
+        wait_timeout: 10m
+        state: present
 
-- name: Wait for Vizier custom resource
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get vizier
-      -n {{ pixie_namespace_vizier }}
-      -o name
-  register: pixie_vizier_cr
-  changed_when: false
-  retries: 60
-  delay: 5
-  until:
-    - pixie_vizier_cr.rc == 0
-    - pixie_vizier_cr.stdout | trim | length > 0
+    - name: Wait for Vizier custom resource
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get vizier
+          -n {{ pixie_namespace_vizier }}
+          -o name
+      register: pixie_vizier_cr
+      changed_when: false
+      retries: 60
+      delay: 5
+      until:
+        - pixie_vizier_cr.rc == 0
+        - pixie_vizier_cr.stdout | trim | length > 0
 
-- name: Wait for PEM pods to be created
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get pods
-      -n {{ pixie_namespace_vizier }}
-      -l name=vizier-pem
-      -o name
-  register: pixie_pem_pods
-  changed_when: false
-  retries: 120
-  delay: 5
-  until:
-    - pixie_pem_pods.rc == 0
-    - pixie_pem_pods.stdout_lines | length > 0
+    - name: Wait for Vizier cloud connector
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          wait
+          --for=condition=Ready
+          pod
+          -l name=vizier-cloud-connector
+          -n {{ pixie_namespace_vizier }}
+          --timeout=180s
+      register: pixie_cloud_connector_ready
+      changed_when: false
+      failed_when: false
 
-- name: Wait for PEM pods to be ready
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      wait
-      --for=condition=Ready
-      pod
-      -l name=vizier-pem
-      -n {{ pixie_namespace_vizier }}
-      --timeout=600s
-  changed_when: false
+    - name: Wait for PEM pods to be created
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get pods
+          -n {{ pixie_namespace_vizier }}
+          -l name=vizier-pem
+          -o name
+      register: pixie_pem_pods
+      changed_when: false
+      retries: 120
+      delay: 5
+      until:
+        - pixie_pem_pods.rc == 0
+        - pixie_pem_pods.stdout_lines | length > 0
 
-# - name: Wait for PEM pods
-#   ansible.builtin.command:
-#     cmd: >
-#       kubectl
-#       --kubeconfig {{ pixie_kubeconfig }}
-#       wait
-#       --for=condition=Ready
-#       pod
-#       -l name=vizier-pem
-#       -n {{ pixie_namespace_vizier }}
-#       --timeout=600s
-#   changed_when: false
+    - name: Get cloud connector logs
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          logs
+          -n {{ pixie_namespace_vizier }}
+          -l name=vizier-cloud-connector
+          --tail=100
+      register: pixie_cloud_connector_logs
+      changed_when: false
+      failed_when: false
+      when:
+        - pixie_cloud_connector_ready is defined
+        - pixie_cloud_connector_ready.rc != 0
 
-- name: List Pixie pods
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get pods
-      -n {{ pixie_namespace_vizier }}
-      -o wide
-  register: pixie_pods
-  changed_when: false
+    - name: List Pixie pods
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get pods
+          -n {{ pixie_namespace_vizier }}
+          -o wide
+      register: pixie_pods
+      changed_when: false
 
-- name: Show Pixie pod status
-  ansible.builtin.debug:
-    var: pixie_pods.stdout_lines
+    - name: Show Pixie pod status
+      ansible.builtin.debug:
+        var: pixie_pods.stdout_lines

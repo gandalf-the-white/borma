@@ -34,5 +34,5 @@
     # - roles/envoy-gateway
     - roles/store-k3s
     # - roles/hoover
-    # - pixie
+    - pixie
     # - roles/demo

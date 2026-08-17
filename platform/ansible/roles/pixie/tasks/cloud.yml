@@ -1,360 +1,376 @@
 ---
-- name: Determine latest Pixie Cloud release
-  ansible.builtin.shell: |
-    set -o pipefail
-    git tag |
-      perl -ne 'print $1 if /release\/cloud\/v([^\-]*)$/' |
-      sort -t '.' -k1,1nr -k2,2nr -k3,3nr |
-      head -n 1
-  args:
-    chdir: "{{ pixie_repo_dir }}"
-    executable: /bin/bash
-  register: pixie_latest_cloud_release
-  changed_when: false
-  when: pixie_cloud_version | length == 0
+- name: Cloud Installation
+  tags: cloud
+  block:
+    - name: Determine latest Pixie Cloud release
+      ansible.builtin.shell: |
+        set -o pipefail
+        git tag |
+          perl -ne 'print $1 if /release\/cloud\/v([^\-]*)$/' |
+          sort -t '.' -k1,1nr -k2,2nr -k3,3nr |
+          head -n 1
+      args:
+        chdir: "{{ pixie_repo_dir }}"
+        executable: /bin/bash
+      register: pixie_latest_cloud_release
+      changed_when: false
+      when: pixie_cloud_version | length == 0
 
-- name: Set Pixie Cloud release
-  ansible.builtin.set_fact:
-    pixie_effective_cloud_version: >-
-      {{
-        pixie_cloud_version
-        if pixie_cloud_version | length > 0
-        else pixie_latest_cloud_release.stdout
-      }}
+    - name: Set Pixie Cloud release
+      ansible.builtin.set_fact:
+        pixie_effective_cloud_version: >-
+          {{
+            pixie_cloud_version
+            if pixie_cloud_version | length > 0
+            else pixie_latest_cloud_release.stdout
+          }}
 
-- name: Checkout Pixie Cloud release
-  ansible.builtin.git:
-    repo: "{{ pixie_repo_url }}"
-    dest: "{{ pixie_repo_dir }}"
-    version: "release/cloud/v{{ pixie_effective_cloud_version }}"
-    update: true
-    force: true
-  register: pixie_checkout
+    - name: Checkout Pixie Cloud release
+      ansible.builtin.git:
+        repo: "{{ pixie_repo_url }}"
+        dest: "{{ pixie_repo_dir }}"
+        version: "release/cloud/v{{ pixie_effective_cloud_version }}"
+        update: true
+        force: true
+      register: pixie_checkout
 
-- name: Configure Pixie Cloud image version
-  ansible.builtin.replace:
-    path: "{{ pixie_repo_dir }}/k8s/cloud/public/kustomization.yaml"
-    regexp: "newTag: latest"
-    replace: 'newTag: "{{ pixie_effective_cloud_version }}"'
+    - name: Configure Pixie Cloud image version
+      ansible.builtin.replace:
+        path: "{{ pixie_repo_dir }}/k8s/cloud/public/kustomization.yaml"
+        regexp: "newTag: latest"
+        replace: 'newTag: "{{ pixie_effective_cloud_version }}"'
 
-- name: Configure Pixie Cloud image version
-  ansible.builtin.replace:
-    path: "{{ pixie_repo_dir }}/k8s/cloud/public/kustomization.yaml"
-    regexp: "newTag: latest"
-    replace: 'newTag: "{{ pixie_effective_cloud_version }}"'
+    - name: Configure Pixie Cloud image version
+      ansible.builtin.replace:
+        path: "{{ pixie_repo_dir }}/k8s/cloud/public/kustomization.yaml"
+        regexp: "newTag: latest"
+        replace: 'newTag: "{{ pixie_effective_cloud_version }}"'
 
-- name: Configure custom Pixie domain in domain_config.yaml
-  ansible.builtin.replace:
-    path: "{{ pixie_repo_dir }}/k8s/cloud/public/base/domain_config.yaml"
-    regexp: 'dev\.withpixie\.dev'
-    replace: "{{ pixie_domain }}"
-  when: pixie_domain != "dev.withpixie.dev"
+    - name: Configure custom Pixie domain in domain_config.yaml
+      ansible.builtin.replace:
+        path: "{{ pixie_repo_dir }}/k8s/cloud/public/base/domain_config.yaml"
+        regexp: 'dev\.withpixie\.dev'
+        replace: "{{ pixie_domain }}"
+      when: pixie_domain != "dev.withpixie.dev"
 
-- name: Configure custom Pixie domain in Envoy
-  ansible.builtin.replace:
-    path: "{{ pixie_repo_dir }}/k8s/cloud/public/base/proxy_envoy.yaml"
-    regexp: 'dev\.withpixie\.dev'
-    replace: "{{ pixie_domain }}"
-  when: pixie_domain != "dev.withpixie.dev"
+    - name: Configure custom Pixie domain in Envoy
+      ansible.builtin.replace:
+        path: "{{ pixie_repo_dir }}/k8s/cloud/public/base/proxy_envoy.yaml"
+        regexp: 'dev\.withpixie\.dev'
+        replace: "{{ pixie_domain }}"
+      when: pixie_domain != "dev.withpixie.dev"
 
-- name: Configure custom Pixie domain in secret generation script
-  ansible.builtin.replace:
-    path: "{{ pixie_repo_dir }}/scripts/create_cloud_secrets.sh"
-    regexp: 'dev\.withpixie\.dev'
-    replace: "{{ pixie_domain }}"
-  when: pixie_domain != "dev.withpixie.dev"
+    - name: Configure custom Pixie domain in secret generation script
+      ansible.builtin.replace:
+        path: "{{ pixie_repo_dir }}/scripts/create_cloud_secrets.sh"
+        regexp: 'dev\.withpixie\.dev'
+        replace: "{{ pixie_domain }}"
+      when: pixie_domain != "dev.withpixie.dev"
 
-- name: Check whether Pixie Cloud secrets already exist
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get secret
-      -n {{ pixie_namespace_cloud }}
-  register: pixie_existing_secrets
-  changed_when: false
+    - name: Check whether Pixie Cloud secrets already exist
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get secret
+          -n {{ pixie_namespace_cloud }}
+      register: pixie_existing_secrets
+      changed_when: false
 
-- name: Define expected Pixie Cloud secrets
-  ansible.builtin.set_fact:
-    pixie_cloud_expected_secrets:
-      - cloud-auth-secrets
-      - pl-hydra-secrets
-      - pl-db-secrets
-      - cloud-session-secrets
-      - service-tls-certs
-      - cloud-proxy-tls-certs
+    - name: Define expected Pixie Cloud secrets
+      ansible.builtin.set_fact:
+        pixie_cloud_expected_secrets:
+          - cloud-auth-secrets
+          - pl-hydra-secrets
+          - pl-db-secrets
+          - cloud-session-secrets
+          - service-tls-certs
+          - cloud-proxy-tls-certs
 
-- name: Check Pixie Cloud secrets
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get secret {{ item }}
-      -n {{ pixie_namespace_cloud }}
-      -o name
-  loop: "{{ pixie_cloud_expected_secrets }}"
-  register: pixie_cloud_secret_checks
-  changed_when: false
-  failed_when: false
+    - name: Check Pixie Cloud secrets
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get secret {{ item }}
+          -n {{ pixie_namespace_cloud }}
+          -o name
+      loop: "{{ pixie_cloud_expected_secrets }}"
+      register: pixie_cloud_secret_checks
+      changed_when: false
+      failed_when: false
 
-- name: Determine whether all Pixie Cloud secrets exist
-  ansible.builtin.set_fact:
-    pixie_cloud_secrets_complete: >-
-      {{
-        (pixie_cloud_secret_checks.results
-         | selectattr('rc', 'equalto', 0)
-         | list
-         | length)
-        ==
-        (pixie_cloud_expected_secrets | length)
-      }}
+    - name: Determine whether all Pixie Cloud secrets exist
+      ansible.builtin.set_fact:
+        pixie_cloud_secrets_complete: >-
+          {{
+            (pixie_cloud_secret_checks.results
+            | selectattr('rc', 'equalto', 0)
+            | list
+            | length)
+            ==
+            (pixie_cloud_expected_secrets | length)
+          }}
 
-- name: Generate Pixie Cloud secrets
-  ansible.builtin.command:
-    cmd: ./scripts/create_cloud_secrets.sh
-  args:
-    chdir: "{{ pixie_repo_dir }}"
-  environment:
-    KUBECONFIG: "{{ pixie_kubeconfig }}"
-  when: not pixie_cloud_secrets_complete
+    - name: Generate Pixie Cloud secrets
+      ansible.builtin.command:
+        cmd: ./scripts/create_cloud_secrets.sh
+      args:
+        chdir: "{{ pixie_repo_dir }}"
+      environment:
+        KUBECONFIG: "{{ pixie_kubeconfig }}"
+      when: not pixie_cloud_secrets_complete
 
-- name: Deploy Elastic operator
-  ansible.builtin.shell: |
-    set -o pipefail
-    kustomize build k8s/cloud_deps/base/elastic/operator |
-      kubectl --kubeconfig {{ pixie_kubeconfig }} apply -f -
-  args:
-    chdir: "{{ pixie_repo_dir }}"
-    executable: /bin/bash
-  register: pixie_elastic_operator
-  changed_when: >
-    'created' in pixie_elastic_operator.stdout or
-    'configured' in pixie_elastic_operator.stdout
+    - name: Deploy Elastic operator
+      ansible.builtin.shell: |
+        set -o pipefail
+        kustomize build k8s/cloud_deps/base/elastic/operator |
+          kubectl --kubeconfig {{ pixie_kubeconfig }} apply -f -
+      args:
+        chdir: "{{ pixie_repo_dir }}"
+        executable: /bin/bash
+      register: pixie_elastic_operator
+      changed_when: >
+        'created' in pixie_elastic_operator.stdout or
+        'configured' in pixie_elastic_operator.stdout
 
-- name: Wait for Elastic operator
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      rollout status
-      statefulset/elastic-operator
-      -n elastic-system
-      --timeout=300s
-  changed_when: false
+    - name: Wait for Elastic operator
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          rollout status
+          statefulset/elastic-operator
+          -n elastic-system
+          --timeout=300s
+      changed_when: false
 
-- name: Deploy Pixie Cloud dependencies
-  ansible.builtin.shell: |
-    set -o pipefail
-    kustomize build k8s/cloud_deps/public |
-      kubectl --kubeconfig {{ pixie_kubeconfig }} apply -f -
-  args:
-    chdir: "{{ pixie_repo_dir }}"
-    executable: /bin/bash
-  register: pixie_cloud_deps
-  changed_when: >
-    'created' in pixie_cloud_deps.stdout or
-    'configured' in pixie_cloud_deps.stdout
+    - name: Deploy Pixie Cloud dependencies
+      ansible.builtin.shell: |
+        set -o pipefail
+        kustomize build k8s/cloud_deps/public |
+          kubectl --kubeconfig {{ pixie_kubeconfig }} apply -f -
+      args:
+        chdir: "{{ pixie_repo_dir }}"
+        executable: /bin/bash
+      register: pixie_cloud_deps
+      changed_when: >
+        'created' in pixie_cloud_deps.stdout or
+        'configured' in pixie_cloud_deps.stdout
 
-- name: Wait for PostgreSQL
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      rollout status deployment/postgres
-      -n {{ pixie_namespace_cloud }}
-      --timeout=600s
-  changed_when: false
+    - name: Wait for PostgreSQL
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          rollout status deployment/postgres
+          -n {{ pixie_namespace_cloud }}
+          --timeout=600s
+      changed_when: false
 
-- name: Wait for NATS StatefulSet
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      rollout status statefulset/pl-nats
-      -n {{ pixie_namespace_cloud }}
-      --timeout=600s
-  changed_when: false
+    - name: Wait for NATS StatefulSet
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          rollout status statefulset/pl-nats
+          -n {{ pixie_namespace_cloud }}
+          --timeout=600s
+      changed_when: false
 
-- name: Wait for Elasticsearch pods to be created
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get pods
-      -n {{ pixie_namespace_cloud }}
-      -l common.k8s.elastic.co/type=elasticsearch
-      -o name
-  register: pixie_elasticsearch_pods
-  changed_when: false
-  retries: 60
-  delay: 5
-  until:
-    - pixie_elasticsearch_pods.rc == 0
-    - pixie_elasticsearch_pods.stdout_lines | length >= 3
+    - name: Wait for Elasticsearch pods to be created
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get pods
+          -n {{ pixie_namespace_cloud }}
+          -l common.k8s.elastic.co/type=elasticsearch
+          -o name
+      register: pixie_elasticsearch_pods
+      changed_when: false
+      retries: 60
+      delay: 5
+      until:
+        - pixie_elasticsearch_pods.rc == 0
+        - pixie_elasticsearch_pods.stdout_lines | length >= 3
 
-- name: Wait for Elasticsearch pods to be ready
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      wait
-      --for=condition=Ready
-      pod
-      -l common.k8s.elastic.co/type=elasticsearch
-      -n {{ pixie_namespace_cloud }}
-      --timeout=900s
-  changed_when: false
+    - name: Wait for Elasticsearch pods to be ready
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          wait
+          --for=condition=Ready
+          pod
+          -l common.k8s.elastic.co/type=elasticsearch
+          -n {{ pixie_namespace_cloud }}
+          --timeout=900s
+      changed_when: false
 
-- name: Deploy Pixie Cloud
-  ansible.builtin.shell: |
-    set -o pipefail
-    kustomize build k8s/cloud/public |
-      kubectl --kubeconfig {{ pixie_kubeconfig }} apply -f -
-  args:
-    chdir: "{{ pixie_repo_dir }}"
-    executable: /bin/bash
-  register: pixie_cloud
-  changed_when: >
-    'created' in pixie_cloud.stdout or
-    'configured' in pixie_cloud.stdout
+    - name: Deploy Pixie Cloud
+      ansible.builtin.shell: |
+        set -o pipefail
+        kustomize build k8s/cloud/public |
+          kubectl --kubeconfig {{ pixie_kubeconfig }} apply -f -
+      args:
+        chdir: "{{ pixie_repo_dir }}"
+        executable: /bin/bash
+      register: pixie_cloud
+      changed_when: >
+        'created' in pixie_cloud.stdout or
+        'configured' in pixie_cloud.stdout
 
-- name: Wait for cloud-proxy service external IP
-  ansible.builtin.shell: |
-    kubectl --kubeconfig {{ pixie_kubeconfig }} \
-      get svc cloud-proxy-service \
-      -n {{ pixie_namespace_cloud }} \
-      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-  register: pixie_cloud_proxy_ip
-  retries: 30
-  delay: 10
-  until: pixie_cloud_proxy_ip.stdout | length > 0
-  changed_when: false
+    - name: Wait for cloud-proxy service external IP
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ pixie_kubeconfig }} \
+          get svc cloud-proxy-service \
+          -n {{ pixie_namespace_cloud }} \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: pixie_cloud_proxy_ip
+      retries: 30
+      delay: 10
+      until: pixie_cloud_proxy_ip.stdout | length > 0
+      changed_when: false
 
-- name: Wait for vzconn service external IP
-  ansible.builtin.shell: |
-    kubectl --kubeconfig {{ pixie_kubeconfig }} \
-      get svc vzconn-service \
-      -n {{ pixie_namespace_cloud }} \
-      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-  register: pixie_vzconn_ip
-  retries: 30
-  delay: 10
-  until: pixie_vzconn_ip.stdout | length > 0
-  changed_when: false
+    - name: Wait for vzconn service external IP
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ pixie_kubeconfig }} \
+          get svc vzconn-service \
+          -n {{ pixie_namespace_cloud }} \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: pixie_vzconn_ip
+      retries: 30
+      delay: 10
+      until: pixie_vzconn_ip.stdout | length > 0
+      changed_when: false
 
-- name: Display Pixie endpoints
-  ansible.builtin.debug:
-    msg:
-      - "Pixie domain: {{ pixie_domain }}"
-      - "cloud-proxy: {{ pixie_cloud_proxy_ip.stdout }}"
-      - "vzconn: {{ pixie_vzconn_ip.stdout }}"
+    - name: Display Pixie endpoints
+      ansible.builtin.debug:
+        msg:
+          - "Pixie domain: {{ pixie_domain }}"
+          - "cloud-proxy: {{ pixie_cloud_proxy_ip.stdout }}"
+          - "vzconn: {{ pixie_vzconn_ip.stdout }}"
 
-- name: Check Pixie CLI
-  ansible.builtin.stat:
-    path: /usr/local/bin/px
-  register: pixie_cli_binary
+    - name: Check Pixie CLI
+      ansible.builtin.stat:
+        path: /usr/local/bin/px
+      register: pixie_cli_binary
 
-- name: Download Pixie CLI
-  ansible.builtin.get_url:
-    url: https://storage.googleapis.com/pixie-dev-public/cli/latest/cli_linux_amd64
-    dest: /usr/local/bin/px
-    mode: "0755"
-    owner: root
-    group: root
-  become: true
-  when:
-    - pixie_cli_install | bool
-    - not pixie_cli_binary.stat.exists
+    - name: Download Pixie CLI
+      ansible.builtin.get_url:
+        url: https://storage.googleapis.com/pixie-dev-public/cli/latest/cli_linux_amd64
+        dest: /usr/local/bin/px
+        mode: "0755"
+        owner: root
+        group: root
+      become: true
+      when:
+        - pixie_cli_install | bool
+        - not pixie_cli_binary.stat.exists
 
-- name: Check Pixie CLI version
-  ansible.builtin.command:
-    cmd: /usr/local/bin/px version
-  register: pixie_cli_version
-  changed_when: false
-  when: pixie_cli_install | bool
+    - name: Check Pixie CLI version
+      ansible.builtin.command:
+        cmd: /usr/local/bin/px version
+      register: pixie_cli_version
+      changed_when: false
+      when: pixie_cli_install | bool
 
-- name: Download Pixie CLI checksum
-  ansible.builtin.get_url:
-    url: https://storage.googleapis.com/pixie-dev-public/cli/latest/cli_linux_amd64.sha256
-    dest: /tmp/pixie-cli.sha256
-    mode: "0644"
-  when: pixie_cli_install | bool
+    - name: Download Pixie CLI checksum
+      ansible.builtin.get_url:
+        url: https://storage.googleapis.com/pixie-dev-public/cli/latest/cli_linux_amd64.sha256
+        dest: /tmp/pixie-cli.sha256
+        mode: "0644"
+      when: pixie_cli_install | bool
 
-- name: Read Pixie CLI checksum
-  ansible.builtin.slurp:
-    src: /tmp/pixie-cli.sha256
-  register: pixie_cli_checksum_file
-  when: pixie_cli_install | bool
+    - name: Read Pixie CLI checksum
+      ansible.builtin.slurp:
+        src: /tmp/pixie-cli.sha256
+      register: pixie_cli_checksum_file
+      when: pixie_cli_install | bool
 
-- name: Set Pixie CLI checksum
-  ansible.builtin.set_fact:
-    pixie_cli_checksum: >-
-      {{
-        (pixie_cli_checksum_file.content | b64decode).split()[0]
-      }}
-  when: pixie_cli_install | bool
+    - name: Set Pixie CLI checksum
+      ansible.builtin.set_fact:
+        pixie_cli_checksum: >-
+          {{
+            (pixie_cli_checksum_file.content | b64decode).split()[0]
+          }}
+      when: pixie_cli_install | bool
 
-- name: Install Pixie CLI
-  ansible.builtin.get_url:
-    url: https://storage.googleapis.com/pixie-dev-public/cli/latest/cli_linux_amd64
-    dest: /usr/local/bin/px
-    mode: "0755"
-    owner: root
-    group: root
-    checksum: "sha256:{{ pixie_cli_checksum }}"
-  become: true
-  when: pixie_cli_install | bool
+    - name: Install Pixie CLI
+      ansible.builtin.get_url:
+        url: https://storage.googleapis.com/pixie-dev-public/cli/latest/cli_linux_amd64
+        dest: /usr/local/bin/px
+        mode: "0755"
+        owner: root
+        group: root
+        checksum: "sha256:{{ pixie_cli_checksum }}"
+      become: true
+      when: pixie_cli_install | bool
 
-- name: Wait for cloud-proxy-service external IP
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get svc cloud-proxy-service
-      -n {{ pixie_namespace_cloud }}
-      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-  register: pixie_cloud_proxy_ip_result
-  changed_when: false
-  retries: 30
-  delay: 10
-  until:
-    - pixie_cloud_proxy_ip_result.rc == 0
-    - pixie_cloud_proxy_ip_result.stdout | trim | length > 0
+    - name: Wait for cloud-proxy-service external IP
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get svc cloud-proxy-service
+          -n {{ pixie_namespace_cloud }}
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: pixie_cloud_proxy_ip_result
+      changed_when: false
+      retries: 30
+      delay: 10
+      until:
+        - pixie_cloud_proxy_ip_result.rc == 0
+        - pixie_cloud_proxy_ip_result.stdout | trim | length > 0
 
-- name: Store Pixie Cloud proxy external IP
-  ansible.builtin.set_fact:
-    pixie_cloud_proxy_ip: "{{ pixie_cloud_proxy_ip_result.stdout | trim }}"
+    - name: Store Pixie Cloud proxy external IP
+      ansible.builtin.set_fact:
+        pixie_cloud_proxy_ip: "{{ pixie_cloud_proxy_ip_result.stdout | trim }}"
 
-- name: Display Pixie Cloud proxy IP
-  ansible.builtin.debug:
-    msg: "Pixie cloud-proxy-service IP: {{ pixie_cloud_proxy_ip }}"
+    - name: Display Pixie Cloud proxy IP
+      ansible.builtin.debug:
+        msg: "Pixie cloud-proxy-service IP: {{ pixie_cloud_proxy_ip }}"
 
-- name: Wait for Pixie LoadBalancer external IPs
-  ansible.builtin.command:
-    cmd: >
-      kubectl
-      --kubeconfig {{ pixie_kubeconfig }}
-      get svc {{ item.name }}
-      -n {{ pixie_namespace_cloud }}
-      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-  register: pixie_lb_services
-  changed_when: false
-  retries: 30
-  delay: 10
-  until:
-    - pixie_lb_services.rc == 0
-    - pixie_lb_services.stdout | trim | length > 0
-  loop:
-    - name: cloud-proxy-service
-    - name: vzconn-service
+    - name: Wait for Pixie LoadBalancer external IPs
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get svc {{ item.name }}
+          -n {{ pixie_namespace_cloud }}
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: pixie_lb_services
+      changed_when: false
+      retries: 30
+      delay: 10
+      until:
+        - pixie_lb_services.rc == 0
+        - pixie_lb_services.stdout | trim | length > 0
+      loop:
+        - name: cloud-proxy-service
+        - name: vzconn-service
 
-- name: Store Pixie LoadBalancer IPs
-  ansible.builtin.set_fact:
-    pixie_cloud_proxy_ip: "{{ pixie_lb_services.results[0].stdout | trim }}"
-    pixie_vzconn_ip: "{{ pixie_lb_services.results[1].stdout | trim }}"
+    - name: Store Pixie LoadBalancer IPs
+      ansible.builtin.set_fact:
+        pixie_cloud_proxy_ip: "{{ pixie_lb_services.results[0].stdout | trim }}"
+        pixie_vzconn_ip: "{{ pixie_lb_services.results[1].stdout | trim }}"
 
-- name: Display Pixie endpoints
-  ansible.builtin.debug:
-    msg:
-      - "Pixie Cloud proxy: {{ pixie_cloud_proxy_ip }}"
-      - "Pixie VZConn: {{ pixie_vzconn_ip }}"
+    - name: Display Pixie endpoints
+      ansible.builtin.debug:
+        msg:
+          - "Pixie Cloud proxy: {{ pixie_cloud_proxy_ip }}"
+          - "Pixie VZConn: {{ pixie_vzconn_ip }}"
+
+    - name: Install Pixie root CA
+      ansible.builtin.copy:
+        src: "{{ pixie_root_ca_source }}"
+        dest: /usr/local/share/ca-certificates/pixie-rootCA.crt
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Update CA certificates
+
+    - name: Update CA certificates
+      ansible.builtin.command:
+        cmd: update-ca-certificates
