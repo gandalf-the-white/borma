@@ -1,0 +1,9 @@
+clusterName: "{{ pixie_cluster_name }}"
+
+deployKey: "{{ pixie_deploy_key }}"
+
+devCloudNamespace: "{{ pixie_namespace_cloud }}"
+
+pemMemoryLimit: "{{ pixie_pem_memory_limit }}"
+
+deployOLM: {{ (not pixie_olm_already_installed) | lower }}

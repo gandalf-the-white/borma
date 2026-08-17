@@ -1,0 +1,64 @@
+---
+- name: Remove obsolete Pixie CoreDNS override
+  ansible.builtin.command:
+    cmd: >
+      kubectl
+      --kubeconfig {{ pixie_kubeconfig }}
+      patch configmap coredns-custom
+      -n kube-system
+      --type merge
+      -p '{"data":{"pixie.override":null}}'
+  register: pixie_coredns_override_cleanup
+  changed_when: "'patched' in pixie_coredns_override_cleanup.stdout"
+  failed_when: false
+  when: pixie_configure_coredns | bool
+
+- name: Configure temporary Pixie DNS server in CoreDNS
+  kubernetes.core.k8s:
+    kubeconfig: "{{ pixie_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: coredns-custom
+        namespace: kube-system
+      data:
+        pixie.server: |
+          {{ pixie_domain }}:53 {
+            hosts {
+              {{ pixie_cloud_proxy_ip }} {{ pixie_domain }}
+            }
+          }
+  register: pixie_coredns_config
+  when: pixie_configure_coredns | bool
+
+- name: Restart CoreDNS
+  ansible.builtin.command:
+    cmd: >
+      kubectl
+      --kubeconfig {{ pixie_kubeconfig }}
+      rollout restart deployment/coredns
+      -n kube-system
+  register: pixie_coredns_restart
+  changed_when: true
+  when:
+    - pixie_configure_coredns | bool
+    - >
+      pixie_coredns_config.changed or
+      pixie_coredns_override_cleanup.changed
+
+    - name: Wait for CoreDNS rollout
+  ansible.builtin.command:
+    cmd: >
+      kubectl
+      --kubeconfig {{ pixie_kubeconfig }}
+      rollout status deployment/coredns
+      -n kube-system
+      --timeout=120s
+  changed_when: false
+  when:
+    - pixie_configure_coredns | bool
+    - >
+      pixie_coredns_config.changed or
+      pixie_coredns_override_cleanup.changed

@@ -1,3 +1,44 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for ansible/roles/pixie
+packages:
+  - mkcert
+  - kustomize
+  - git
+  - curl
+  - ca-certificates
+  - perl
+  - golang-go
+
+# Kubernetes / k3s
+pixie_kubeconfig: /etc/rancher/k3s/k3s.yaml
+pixie_namespace_cloud: plc
+pixie_namespace_vizier: pl
+
+# Storage
+storage_class: nfs-client
+
+# Pixie Cloud
+pixie_repo_url: https://github.com/pixie-io/pixie.git
+pixie_repo_dir: /opt/pixie
+
+pixie_cloud_version: "0.1.9"
+
+pixie_domain: dev.withpixie.dev
+pixie_cloud_proxy_ip: ""
+
+pixie_configure_coredns: true
+
+pixie_cli_install: true
+pixie_cloud_addr: "{{ pixie_domain }}"
+
+pixie_cluster_name: south
+pixie_pem_memory_limit: 1Gi
+
+pixie_olm_already_installed: false
+
+pixie_deploy_key: "ma-cle-de-deploiement-pixie"
+
+pixie_enable_dev_dns_updater: true
+
+pixie_allow_secret_recreation: true

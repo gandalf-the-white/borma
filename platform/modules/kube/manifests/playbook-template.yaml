@@ -17,7 +17,7 @@
     - roles/k3s
     - roles/cilium
 
-- name: install Istio and metallb
+- name: install metallband, pixie
   hosts: bootstrap
   become: true
   vars:
@@ -34,4 +34,5 @@
     # - roles/envoy-gateway
     - roles/store-k3s
     # - roles/hoover
+    # - pixie
     # - roles/demo

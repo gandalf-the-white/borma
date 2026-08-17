@@ -1,0 +1,59 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for ansible/roles/pixie
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install packages
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+- name: Wait for kubeconfig
+  wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 60
+
+- name: Set kubeconfig env
+  set_fact:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for Kubernetes API
+  command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: result
+  retries: 10
+  delay: 5
+  until: result.rc == 0
+
+- name: Verify cluster access
+  command: kubectl get nodes
+  changed_when: false
+
+- name: Verify NFS StorageClass exists
+  command: kubectl get storageclass {{ storage_class }}
+  changed_when: false
+
+- name: Create pixie namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ pixie_namespace_cloud }}"
+    state: present
+
+# - name: Clone Pixie repository
+#   ansible.builtin.git:
+#     repo: "{{ pixie_repo_url }}"
+#     dest: "{{ pixie_repo_dir }}"
+#     update: true
+
+- name: Clone Pixie repository
+  ansible.builtin.git:
+    repo: "{{ pixie_repo_url }}"
+    dest: "{{ pixie_repo_dir }}"
+    update: true
+    force: true
