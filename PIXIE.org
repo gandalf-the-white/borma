@@ -1,43 +1,45 @@
 #+title: Pixie
 
 * Introduction
-It's just an open source observability tool for Kubernetes. Pixie uses eBPF to automatically capture telemetry data.
+Pixie is an open-source observability tool for Kubernetes. It uses eBPF to automatically capture
+telemetry data.
 
 * Installation
-There is 2 methods
+There is two methods:
 + Hosted Pixie
 + Self-Hosted Pixie
 Since I'm using my own lab, we'll be using the self-hosted architecture.
 ** Kubernetes Install
-Just to preview the changes that Terraform plans to make.
+First, preview the changes that Terraform plans to make.
 #+begin_src shell
 $ terraform plan --out tfplan
 #+end_src
-We finally start the installation
+Then start the installation.
 #+begin_src shell
 $ terraform apply -auto-approve --target=module.south
 #+end_src
 ** Pixie install process
-The installation is divided in 2 step.
+The installation is divided in two steps.
 + Pixie Cloud
 + Vizier
-The first step provides the /deploy key/ and the /certificate/
+The first step provides the /deploy key/ and the /certificate/.
 ** First Step
-First of all, We set *ansible/roles/pixie/default/main.yml*
+First of all, We configure *ansible/roles/pixie/default/main.yml*:
 #+begin_src yaml
 pixie_install_cloud: true
 pixie_install_vizier: false
 #+end_src
-just to install /pixie cloud/ and we start the /playbook/ according to *Pixie*.
+This installs only /Pixie Cloud/. We then start the playbook according to the /Pixie/ installation process.
 #+begin_src shell
 $ ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-pixie.yaml
 #+end_src
-At the end of the process, we prepare the initialization. We import and update the certificate
+At the end of the process, we prepare the initialization by importing and updating the certificate.
 #+begin_src shell
 $ cp "$(mkcert -CAROOT)/rootCA.pem" \
   /usr/local/share/ca-certificates/pixie-rootCA.crt
 $ update-ca-certificates
 #+end_src
+The Pixie CLI asks us to visit the local login page and waits for the authentication /token/.
 #+begin_src
 $ export PX_CLOUD_ADDR=dev.withpixie.dev
 $ px auth login --manual
@@ -52,31 +54,30 @@ Please Visit:
 
 Copy and paste token here:
 #+end_src
-The process is waiting for the /token/.
 ** Second Step
-We need to copy the /root certificate/ in order to import this one in our /browser/ such as /Firefox/.
+We need to copy the /root certificate/ so that we can import it into our browser, such as /Firefox/.
 #+begin_src shell
 $ scp -i ~/.ssh/id_ed25519_proxmox  spike@192.188.200.101:~/rootCA.pem  .
 #+end_src
-You guessed that this one is located in /master01/, more accurately in the /root/ directory.
-To simply check the directory
+The certificate is located on the master node, in the user's home directory. To check the CA root
+directory, run:
 #+begin_src shell
 $ mkcert -CAROOT
 #+end_src
 ** Third Step
-+ We need to import the /root certificate/ in our browser.
-+ We add the IP address of the master in our //etc/hosts/, for example.
++ Import the /root certificate/ into the browser.
++ Add the master's IP address to //etc/hosts/, for example.
   #+begin_src emacs-lisp
 192.188.200.229 dev.withpixie.dev
   #+end_src
-+ Open the browser with the url https://work.dev.withpixie.dev:443/login?local_mode=true
-+ To obtain the key, The Login/Password are
++ Open the browser at https://work.dev.withpixie.dev:443/login?local_mode=true
++ To obtain the key, use the following login credentials:
   + admin@default.com
   + admin
 ** Fourth Step
-+ We write the new /Pixie Auth Token/ in the first step
++ Enter the new Pixie authentication token in the /CLI/ prompt from the first step.
 ** Sixth Step
-We need to create the /deploy key/ in the master such as
+We need to create the /deploy key/ on the master node:
 #+begin_src shell
 $ px deploy-key create
 Pixie CLI
@@ -89,15 +90,16 @@ ID: 25679ee5-87d1-4339-aba8-e5c00b559cfe
 Key: px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224
 #+end_src
 
-+ We write the /Key/ in the /ansible/roles/pixie/default/ at the *pixie_deploy_key* parameter.
-+ We finally modify in the same file the parameters:
++ Write the key in the ansible/roles/pixie/default configuration as the pixie_deploy_key
+parameter.
++ Then modify the parameters in the same file:
   #+begin_src yaml
 pixie_deploy_key: “px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224”
 
 pixie_install_cloud: false
 pixie_install_vizier: true
   #+end_src
-Just to check the result
+To check the result, run:
 #+begin_src shell
 $ px deploy-key list
 Pixie CLI
@@ -110,7 +112,7 @@ Table ID: deployment-keys
   25679ee5-87d1-4339-aba8-e5c00b559cfe  <hidden>  2026-08-18T12:50:17.619236Z
 #+end_src
 ** Final Step
-We reload the playbook with the new parameters
+Run the playbook again with the new parameters:
 + pixie_install_cloud: false
 + pixie_install_vizier: true
 + pixie_deploy_key: "px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224"
@@ -145,7 +147,7 @@ Table ID: output
   b99dd1ba-f255-4338-9eb1-708438388361  1     kelvin-568858fc6-rgq6l  10.0.1.237:59300  AGENT_STATE_HEALTHY  2026-08-18 16:45:44.303498304 +0200 CEST  3213216521         false
 #+end_src
 ** Debian
-The platform is based on /Debian/. So, /Pixie/ is in a trouble with the kernel /6.12.x/
+The platform is based on /Debian/. However, Pixie has trouble with the Linux /6.12.x/ kernel.
 #+begin_src
 $ px run px/processes
 Pixie CLI
@@ -174,4 +176,4 @@ socket_tracer BPF           KO
         http_events absent
 #+end_src
 ** Solution
-We could replace the kernel /6.12/ by the /6.1 LTS/...
+We could replace the kernel /6.12/ with the Linux /6.1 LTS/ kernel...
