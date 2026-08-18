@@ -133,8 +133,8 @@ Table ID: viziers
 $ px get pems
 Pixie CLI
 *******************************
-/* ENV VARS
-/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+* ENV VARS
+* 	 PX_CLOUD_ADDR=dev.withpixie.dev
 *******************************
 Table ID: output
   AGENT ID                              ASID  HOSTNAME                IP ADDRESS        AGENT STATE          CREATE TIME                               LAST HEARTBEAT NS  KERNEL HEADERS INSTALLED
@@ -148,8 +148,8 @@ The platform is based on /Debian/. So, /Pixie/ is in a trouble with the kernel /
 $ px run px/processes
 Pixie CLI
 *******************************
-/* ENV VARS
-/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+* ENV VARS
+* 	 PX_CLOUD_ADDR=dev.withpixie.dev
 *******************************
 FATA[0000] Failed to get script                          error="Script not found (run `px run -l` to list available scripts)"
 #+end_src
