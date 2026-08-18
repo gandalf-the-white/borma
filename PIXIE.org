@@ -43,8 +43,8 @@ $ export PX_CLOUD_ADDR=dev.withpixie.dev
 $ px auth login --manual
 Pixie CLI
 *******************************
-/* ENV VARS
-/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+* ENV VARS
+* 	 PX_CLOUD_ADDR=dev.withpixie.dev
 *******************************
 
 Please Visit:
@@ -81,8 +81,8 @@ We need to create the /deploy key/ in the master such as
 $ px deploy-key create
 Pixie CLI
 *******************************
-/* ENV VARS
-/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+* ENV VARS
+* 	 PX_CLOUD_ADDR=dev.withpixie.dev
 *******************************
 Generated deployment key:
 ID: 25679ee5-87d1-4339-aba8-e5c00b559cfe
@@ -100,8 +100,8 @@ Just to check the result
 $ px deploy-key list
 Pixie CLI
 *******************************
-/* ENV VARS
-/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+* ENV VARS
+* 	 PX_CLOUD_ADDR=dev.withpixie.dev
 *******************************
 Table ID: deployment-keys
   ID                                    KEY       CREATEDAT                    DESCRIPTION
@@ -122,8 +122,8 @@ ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-pixie.yaml
 $ px get viziers
 Pixie CLI
 *******************************
-/* ENV VARS
-/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+* ENV VARS
+* 	 PX_CLOUD_ADDR=dev.withpixie.dev
 *******************************
 Table ID: viziers
   CLUSTERNAME  ID                                    K8S VERSION   OPERATOR VERSION  VIZIER VERSION  LAST HEARTBEAT  STATUS      STATUS MESSAGE
