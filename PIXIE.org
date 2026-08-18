@@ -154,6 +154,7 @@ Pixie CLI
 FATA[0000] Failed to get script                          error="Script not found (run `px run -l` to list available scripts)"
 #+end_src
 ** Summary
+#+begin_src
 k3s                         OK
 Cilium                      OK
 Pixie Cloud                 OK
@@ -169,5 +170,6 @@ socket_tracer BPF           KO
        └── kernel 6.12 + Pixie/BCC
                ↓
         http_events absent
+#+end_src
 ** Solution
 We could replace the kernel /6.12/ by the /6.1 LTS/...
