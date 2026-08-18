@@ -185,6 +185,25 @@ resource "local_file" "playbook" {
   file_permission = "0644"
 }
 
+# Just if you want to install PIXIE
+# Read the process
+resource "local_file" "pixie" {
+  content = templatefile("${path.module}/manifests/playbook-pixie-template.yaml",
+    {
+      proxy                     = var.proxy
+      noproxy                   = "${var.noproxy},${var.prefix}.0/24"
+      kubeadm_init_master       = proxmox_vm_qemu.master_server[0].name
+      advertise_address         = "${var.prefix}.${var.masters[0].octet}"
+      kubeadm_master_group_name = "master_nodes"
+      kubeadm_worker_group_name = "worker_nodes"
+      prefix                    = var.prefix
+      area                      = var.area
+      storage                   = "${var.prefix}.${var.store}"
+  })
+  filename        = "./ansible/playbook-pixie.yaml"
+  file_permission = "0644"
+}
+
 resource "null_resource" "play_ansible" {
   provisioner "local-exec" {
     command = "ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-k3s.yaml"

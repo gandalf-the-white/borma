@@ -1,0 +1,15 @@
+---
+- name: install metallband, pixie
+  hosts: bootstrap
+  become: true
+  vars:
+    prefix: "${prefix}"
+    area: "${area}"
+    storage: "${storage}"
+  environment:
+    http_proxy: "${proxy}"
+    https_proxy: "${proxy}"
+    no_proxy: "${noproxy}"
+
+  roles:
+    - pixie

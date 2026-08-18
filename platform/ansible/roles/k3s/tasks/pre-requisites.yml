@@ -3,15 +3,48 @@
   hostname:
     name: "{{ inventory_hostname }}"
 
+- name: Show detected kernel
+  ansible.builtin.debug:
+    msg: "Kernel detected: {{ ansible_kernel }}"
+
 - name: Update apt cache
   apt:
     update_cache: yes
     cache_valid_time: 3600
 
-- name: Install packages
+- name: Install Common packages
   apt:
     name: "{{ packages }}"
     state: present
+
+- name: Check availability of running kernel headers
+  ansible.builtin.command:
+    cmd: "apt-cache policy linux-headers-{{ ansible_kernel }}"
+  register: kernel_headers_package
+  changed_when: false
+
+- name: Show kernel headers package information
+  ansible.builtin.debug:
+    var: kernel_headers_package.stdout_lines
+
+- name: Install running kernel headers
+  ansible.builtin.apt:
+    name: "linux-headers-{{ ansible_kernel }}"
+    state: present
+  become: true
+
+- name: Check kernel headers
+  ansible.builtin.stat:
+    path: "/lib/modules/{{ ansible_kernel }}/build"
+  register: kernel_headers
+
+- name: Verify kernel headers are installed
+  ansible.builtin.assert:
+    that:
+      - kernel_headers.stat.exists
+    fail_msg: >
+      Kernel headers for {{ ansible_kernel }} are missing.
+      Pixie eBPF/BCC programs will not compile.
 
 - name: Download k3s
   get_url:

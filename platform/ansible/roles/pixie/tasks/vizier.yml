@@ -106,6 +106,92 @@
         - pixie_cloud_connector_ready is defined
         - pixie_cloud_connector_ready.rc != 0
 
+    # - name: Wait for all Pixie pods to be ready
+    #   ansible.builtin.command:
+    #     cmd: >
+    #       kubectl
+    #       --kubeconfig {{ pixie_kubeconfig }}
+    #       wait
+    #       --for=condition=Ready
+    #       pod
+    #       --all
+    #       -n {{ pixie_namespace_vizier }}
+    #       --timeout=600s
+    #   register: pixie_all_pods_ready
+    #   changed_when: false
+
+    # - name: List Pixie pods
+    #   ansible.builtin.command:
+    #     cmd: >
+    #       kubectl
+    #       --kubeconfig {{ pixie_kubeconfig }}
+    #       get pods
+    #       -n {{ pixie_namespace_vizier }}
+    #       -o wide
+    #   register: pixie_pods
+    #   changed_when: false
+
+    # - name: Show Pixie pod status
+    #   ansible.builtin.debug:
+    #     var: pixie_pods.stdout_lines
+
+    # - name: List Pixie pods
+    #   ansible.builtin.command:
+    #     cmd: >
+    #       kubectl
+    #       --kubeconfig {{ pixie_kubeconfig }}
+    #       get pods
+    #       -n {{ pixie_namespace_vizier }}
+    #       -o wide
+    #   register: pixie_pods
+    #   changed_when: false
+
+    # - name: Show Pixie pod status
+    #   ansible.builtin.debug:
+    #     var: pixie_pods.stdout_lines
+
+    - name: Wait for Vizier deployments
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          rollout status
+          deployment/{{ item }}
+          -n {{ pixie_namespace_vizier }}
+          --timeout=600s
+      loop:
+        - kelvin
+        - vizier-cloud-connector
+        - vizier-query-broker
+      changed_when: false
+
+    - name: Wait for Vizier StatefulSets
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          rollout status
+          statefulset/{{ item }}
+          -n {{ pixie_namespace_vizier }}
+          --timeout=600s
+      loop:
+        - pl-nats
+        - vizier-metadata
+      changed_when: false
+
+    - name: Wait for PEM pods to be ready
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          wait
+          --for=condition=Ready
+          pod
+          -l name=vizier-pem
+          -n {{ pixie_namespace_vizier }}
+          --timeout=600s
+      changed_when: false
+
     - name: List Pixie pods
       ansible.builtin.command:
         cmd: >
@@ -120,3 +206,23 @@
     - name: Show Pixie pod status
       ansible.builtin.debug:
         var: pixie_pods.stdout_lines
+
+    - name: Get non-ready Pixie pods
+      ansible.builtin.command:
+        cmd: >
+          kubectl
+          --kubeconfig {{ pixie_kubeconfig }}
+          get pods
+          -n {{ pixie_namespace_vizier }}
+          --field-selector=status.phase!=Succeeded
+          -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[*].ready}{"\n"}{end}'
+      register: pixie_pod_readiness
+      changed_when: false
+
+    - name: Verify Pixie is fully ready
+      ansible.builtin.assert:
+        that:
+          - "'false' not in pixie_pod_readiness.stdout"
+        fail_msg: >
+          One or more Pixie pods are not Ready:
+          {{ pixie_pod_readiness.stdout }}

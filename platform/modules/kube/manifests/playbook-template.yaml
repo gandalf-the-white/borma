@@ -1,6 +1,7 @@
 ---
 - name: install Kubernetes
   hosts: all
+  gather_facts: true
   become: true
   serial: 1
   vars:
@@ -34,5 +35,4 @@
     # - roles/envoy-gateway
     - roles/store-k3s
     # - roles/hoover
-    - pixie
     # - roles/demo

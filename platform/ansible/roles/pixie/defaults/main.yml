@@ -37,13 +37,13 @@ pixie_pem_memory_limit: 1Gi
 
 pixie_olm_already_installed: false
 
-pixie_deploy_key: "..."
+pixie_deploy_key: "px-dep-68fe41c6-8e78-4923-a450-b10b03d3b4f2"
 
 pixie_enable_dev_dns_updater: true
 
 pixie_allow_secret_recreation: true
 
-pixie_root_ca_source: "/root/.local/share/mkcert/rootCA.pem"
-
-pixie_install_cloud: true
-pixie_install_vizier: false
+# pixie_install_cloud: true
+# pixie_install_vizier: false
+pixie_install_cloud: false
+pixie_install_vizier: true

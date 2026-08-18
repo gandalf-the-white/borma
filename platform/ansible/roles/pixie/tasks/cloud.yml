@@ -362,15 +362,40 @@
           - "Pixie Cloud proxy: {{ pixie_cloud_proxy_ip }}"
           - "Pixie VZConn: {{ pixie_vzconn_ip }}"
 
+    - name: Get mkcert CAROOT
+      ansible.builtin.command:
+        cmd: mkcert -CAROOT
+      register: pixie_mkcert_caroot_result
+      changed_when: false
+
+    - name: Store mkcert CAROOT
+      ansible.builtin.set_fact:
+        pixie_mkcert_caroot: "{{ pixie_mkcert_caroot_result.stdout | trim }}"
+
+    - name: Check Pixie root CA exists
+      ansible.builtin.stat:
+        path: "{{ pixie_mkcert_caroot }}/rootCA.pem"
+      register: pixie_root_ca_stat
+
+    - name: Ensure Pixie root CA exists
+      ansible.builtin.assert:
+        that:
+          - pixie_root_ca_stat.stat.exists
+        fail_msg: "rootCA.pem not found in {{ pixie_mkcert_caroot }}"
+
     - name: Install Pixie root CA
       ansible.builtin.copy:
-        src: "{{ pixie_root_ca_source }}"
+        src: "{{ pixie_mkcert_caroot }}/rootCA.pem"
         dest: /usr/local/share/ca-certificates/pixie-rootCA.crt
         owner: root
         group: root
         mode: "0644"
+        remote_src: true
       notify: Update CA certificates
 
-    - name: Update CA certificates
-      ansible.builtin.command:
-        cmd: update-ca-certificates
+    - name: Add domain pixie
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          {{ pixie_cloud_proxy_ip }}  {{ pixie_domain }}
+        marker: "# {mark} HARDENING ANSIBLE"

@@ -1,3 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # handlers file for ansible/roles/pixie
+- name: Update CA certificates
+  ansible.builtin.command:
+    cmd: update-ca-certificates
+  become: true

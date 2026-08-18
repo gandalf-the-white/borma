@@ -1,0 +1,173 @@
+#+title: Pixie
+
+* Introduction
+It's just an open source observability tool for Kubernetes. Pixie uses eBPF to automatically capture telemetry data.
+
+* Installation
+There is 2 methods
++ Hosted Pixie
++ Self-Hosted Pixie
+Since I'm using my own lab, we'll be using the self-hosted architecture.
+** Kubernetes Install
+Just to preview the changes that Terraform plans to make.
+#+begin_src shell
+$ terraform plan --out tfplan
+#+end_src
+We finally start the installation
+#+begin_src shell
+$ terraform apply -auto-approve --target=module.south
+#+end_src
+** Pixie install process
+The installation is divided in 2 step.
++ Pixie Cloud
++ Vizier
+The first step provides the /deploy key/ and the /certificate/
+** First Step
+First of all, We set *ansible/roles/pixie/default/main.yml*
+#+begin_src yaml
+pixie_install_cloud: true
+pixie_install_vizier: false
+#+end_src
+just to install /pixie cloud/ and we start the /playbook/ according to *Pixie*.
+#+begin_src shell
+$ ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-pixie.yaml
+#+end_src
+At the end of the process, we prepare the initialization. We import and update the certificate
+#+begin_src shell
+$ cp "$(mkcert -CAROOT)/rootCA.pem" \
+  /usr/local/share/ca-certificates/pixie-rootCA.crt
+$ update-ca-certificates
+#+end_src
+#+begin_src
+$ export PX_CLOUD_ADDR=dev.withpixie.dev
+$ px auth login --manual
+Pixie CLI
+*******************************
+/* ENV VARS
+/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+*******************************
+
+Please Visit:
+ 	 https://work.dev.withpixie.dev:443/login?local_mode=true
+
+Copy and paste token here:
+#+end_src
+The process is waiting for the /token/.
+** Second Step
+We need to copy the /root certificate/ in order to import this one in our /browser/ such as /Firefox/.
+#+begin_src shell
+$ scp -i ~/.ssh/id_ed25519_proxmox  spike@192.188.200.101:~/rootCA.pem  .
+#+end_src
+You guessed that this one is located in /master01/, more accurately in the /root/ directory.
+To simply check the directory
+#+begin_src shell
+$ mkcert -CAROOT
+#+end_src
+** Third Step
++ We need to import the /root certificate/ in our browser.
++ We add the IP address of the master in our //etc/hosts/, for example.
+  #+begin_src emacs-lisp
+192.188.200.229 dev.withpixie.dev
+  #+end_src
++ Open the browser with the url https://work.dev.withpixie.dev:443/login?local_mode=true
++ To obtain the key, The Login/Password are
+  + admin@default.com
+  + admin
+** Fourth Step
++ We write the new /Pixie Auth Token/ in the first step
+** Sixth Step
+We need to create the /deploy key/ in the master such as
+#+begin_src shell
+$ px deploy-key create
+Pixie CLI
+*******************************
+/* ENV VARS
+/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+*******************************
+Generated deployment key:
+ID: 25679ee5-87d1-4339-aba8-e5c00b559cfe
+Key: px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224
+#+end_src
+
++ We write the /Key/ in the /ansible/roles/pixie/default/ at the *pixie_deploy_key* parameter.
++ We finally modify in the same file the parameters:
+  #+begin_src yaml
+pixie_install_cloud: false
+pixie_install_vizier: true
+  #+end_src
+Just to check the result
+#+begin_src shell
+$ px deploy-key list
+Pixie CLI
+*******************************
+/* ENV VARS
+/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+*******************************
+Table ID: deployment-keys
+  ID                                    KEY       CREATEDAT                    DESCRIPTION
+  25679ee5-87d1-4339-aba8-e5c00b559cfe  <hidden>  2026-08-18T12:50:17.619236Z
+#+end_src
+** Final Step
+We reload the playbook with the new parameters
++ pixie_install_cloud: false
++ pixie_install_vizier: true
++ pixie_deploy_key: "px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224"
+#+begin_src shell
+ansible-playbook -i ansible/inventory-k3s.yaml ansible/playbook-pixie.yaml
+#+end_src
+
+* Issue
+** Check
+#+begin_src shell
+$ px get viziers
+Pixie CLI
+*******************************
+/* ENV VARS
+/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+*******************************
+Table ID: viziers
+  CLUSTERNAME  ID                                    K8S VERSION   OPERATOR VERSION  VIZIER VERSION  LAST HEARTBEAT  STATUS      STATUS MESSAGE
+  south        891c019e-f984-424e-9bab-81dd9c914394  v1.36.3+k3s1                    0.14.14         2 seconds ago   CS_HEALTHY
+#+end_src
+#+begin_src shell
+$ px get pems
+Pixie CLI
+*******************************
+/* ENV VARS
+/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+*******************************
+Table ID: output
+  AGENT ID                              ASID  HOSTNAME                IP ADDRESS        AGENT STATE          CREATE TIME                               LAST HEARTBEAT NS  KERNEL HEADERS INSTALLED
+  2f3a5a85-8611-4c0f-a660-615fda0f0aa8  4     south-master1                             AGENT_STATE_HEALTHY  2026-08-18 16:51:02.303500971 +0200 CEST  758060117          true
+  ac5c917b-9612-4e3b-99f2-d44f5604b156  5     south-worker1                             AGENT_STATE_HEALTHY  2026-08-18 16:51:29.916634231 +0200 CEST  3141644405         true
+  b99dd1ba-f255-4338-9eb1-708438388361  1     kelvin-568858fc6-rgq6l  10.0.1.237:59300  AGENT_STATE_HEALTHY  2026-08-18 16:45:44.303498304 +0200 CEST  3213216521         false
+#+end_src
+** Debian
+The platform is based on /Debian/. So, /Pixie/ is in a trouble with the kernel /6.12.x/
+#+begin_src
+$ px run px/processes
+Pixie CLI
+*******************************
+/* ENV VARS
+/* 	 PX_CLOUD_ADDR=dev.withpixie.dev
+*******************************
+FATA[0000] Failed to get script                          error="Script not found (run `px run -l` to list available scripts)"
+#+end_src
+** Summary
+k3s                         OK
+Cilium                      OK
+Pixie Cloud                 OK
+Vizier                      OK
+Deploy key                  OK
+PEM                         OK
+Kernel headers              OK
+Kelvin                      OK
+Query Broker                OK
+
+socket_tracer BPF           KO
+       │
+       └── kernel 6.12 + Pixie/BCC
+               ↓
+        http_events absent
+** Solution
+We could replace the kernel /6.12/ by the /6.1 LTS/...
