@@ -176,4 +176,4 @@ socket_tracer BPF           KO
         http_events absent
 #+end_src
 ** Solution
-We could replace the kernel /6.12/ with the Linux /6.1 LTS/ kernel...
+We could replace the kernel /6.12/ with the Linux /6.1 LTS/ kernel or just switch to /Ubuntu/.
