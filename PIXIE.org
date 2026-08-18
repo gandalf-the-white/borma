@@ -92,6 +92,8 @@ Key: px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224
 + We write the /Key/ in the /ansible/roles/pixie/default/ at the *pixie_deploy_key* parameter.
 + We finally modify in the same file the parameters:
   #+begin_src yaml
+pixie_deploy_key: “px-dep-ad493c8f-833b-4e38-b308-dbba5f18f224”
+
 pixie_install_cloud: false
 pixie_install_vizier: true
   #+end_src
