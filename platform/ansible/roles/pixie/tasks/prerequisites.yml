@@ -14,6 +14,22 @@
         name: "{{ packages }}"
         state: present
 
+    - name: Fetch Kustomize
+      ansible.builtin.get_url:
+        url: "{{ kustomize_url }}/kustomize%2Fv{{kustomize_version}}/kustomize_v{{kustomize_version}}_linux_amd64.tar.gz"
+        dest: "/tmp/kustomize_v{{kustomize_version}}_linux_amd64.tar.gz"
+      tags: kustomize
+
+    - name: Unarchive Kustomize
+      ansible.builtin.unarchive:
+        src: "/tmp/kustomize_v{{kustomize_version}}_linux_amd64.tar.gz"
+        dest: /usr/local/bin
+        owner: root
+        group: root
+        mode: "0755"
+        remote_src: yes
+      tags: kustomize
+
     - name: Wait for kubeconfig
       wait_for:
         path: /etc/rancher/k3s/k3s.yaml

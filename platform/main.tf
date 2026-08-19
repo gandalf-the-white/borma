@@ -14,7 +14,7 @@ module "south" {
   vlan        = var.vlan
   nameserver  = var.nameserver
   target_node = var.target_node
-  clone       = "debian-13-tmpl"
+  clone       = "ubuntu-2404-tmpl"
   size        = 30
   storage     = var.storage
   store       = "64"

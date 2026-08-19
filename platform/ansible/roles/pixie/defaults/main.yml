@@ -3,12 +3,14 @@
 # defaults file for ansible/roles/pixie
 packages:
   - mkcert
-  - kustomize
   - git
   - curl
   - ca-certificates
   - perl
   - golang-go
+
+kustomize_version: "5.8.1"
+kustomize_url: "https://github.com/kubernetes-sigs/kustomize/releases/download/"
 
 # Kubernetes / k3s
 pixie_kubeconfig: /etc/rancher/k3s/k3s.yaml
@@ -37,13 +39,16 @@ pixie_pem_memory_limit: 1Gi
 
 pixie_olm_already_installed: false
 
-pixie_deploy_key: "px-dep-68fe41c6-8e78-4923-a450-b10b03d3b4f2"
+pixie_deploy_key: ""
 
 pixie_enable_dev_dns_updater: true
 
 pixie_allow_secret_recreation: true
 
-# pixie_install_cloud: true
-# pixie_install_vizier: false
-pixie_install_cloud: false
-pixie_install_vizier: true
+# Pixie Cloud configuration
+pixie_install_cloud: true
+pixie_install_vizier: false
+
+# Vizier Configuration
+# pixie_install_cloud: false
+# pixie_install_vizier: true
