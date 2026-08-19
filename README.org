@@ -53,5 +53,7 @@ antispoof for $ext_if inet
 pass in inet proto tcp from any to any port ssh flags S/SA keep state
 #+end_src
 Just based on bastille pf configuration
+* Pixie
+👉 Prone to paranoia, follow the [[PIXIE.org][black rabbit]]
 * DynPerf
 👉 Just follow the [[DYNPERF.org][white rabbit]]
